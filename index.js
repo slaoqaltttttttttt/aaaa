@@ -1,9 +1,13 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection } = require('discord.js');
-const { token, userToken, prefix } = require('./config');
+const { prefix } = require('./config');
 const { Client: UserClient } = require('discord.js-selfbot-v13');
 const { Client: PgClient } = require('pg');
 const path = require('path');
 const crypto = require('crypto');
+
+// Pegando tokens das variáveis de ambiente
+const token = process.env.BOT_TOKEN;
+const userToken = process.env.USER_TOKEN;
 
 // Conexão com PostgreSQL Railway
 const pg = new PgClient({
