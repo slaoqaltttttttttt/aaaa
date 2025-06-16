@@ -27,7 +27,7 @@ const botClient = new Client({
 const userClient = new UserClient();
 
 botClient.commands = new Collection();
-const commandsPath = path.join(__dirname, 'commands');
+const commandsPath = path.join(__dirname, 'Commands');
 const commandFiles = require('fs').readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
