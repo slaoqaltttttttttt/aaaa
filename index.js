@@ -185,41 +185,49 @@ async function processShop() {
           normalizedPings[normalizeText(key)] = pings[key];
         }
 
+        // Lista as keys de pings possíveis conforme imagem (normalizadas)
+        const possiblePings = [
+          'shard epico',
+          'shard lendario',
+          'shard mitico',
+          'galo lendario',
+          'item beta',
+          'asuracoins',
+          'xp'
+        ];
+
         for (const opt of options) {
           const normTitle = normalizeText(opt.title);
           const normDesc = normalizeText(opt.desc);
 
-          // Shard Epico
-          if (normalizedPings['shard epico'] && normTitle.includes('shard epico')) {
-            mentionRoles.push(`<@&${normalizedPings['shard epico']}>`);
-          }
-          // Shard Lendario
-          if (normalizedPings['shard lendario'] && normTitle.includes('shard lendario')) {
-            mentionRoles.push(`<@&${normalizedPings['shard lendario']}>`);
-          }
-          // Shard Mitico
-          if (normalizedPings['shard mitico'] && normTitle.includes('shard mitico')) {
-            mentionRoles.push(`<@&${normalizedPings['shard mitico']}>`);
-          }
-          // Galo lendario
-          if (
-            normalizedPings['galo lendario'] &&
-            normTitle.includes('galo') &&
-            normDesc.includes('lendario')
-          ) {
-            mentionRoles.push(`<@&${normalizedPings['galo lendario']}>`);
-          }
-          // item beta
-          if (normalizedPings['item beta'] && normTitle.includes('item beta')) {
-            mentionRoles.push(`<@&${normalizedPings['item beta']}>`);
-          }
-          // asura coin
-          if (normalizedPings['AsuraCoins'] && normTitle.includes('AsuraCoins')) {
-            mentionRoles.push(`<@&${normalizedPings['AsuraCoins']}>`);
-          }
-          // XP
-          if (normalizedPings['xp'] && normTitle.includes('xp')) {
-            mentionRoles.push(`<@&${normalizedPings['xp']}>`);
+          for (const pingKey of possiblePings) {
+            const dbKey = Object.keys(normalizedPings).find(
+              k => normalizeText(k) === pingKey
+            );
+            if (!dbKey) continue;
+
+            if (pingKey === 'galo lendario') {
+              if (normTitle.includes('galo') && normDesc.includes('lendario')) {
+                mentionRoles.push(`<@&${normalizedPings[dbKey]}>`);
+              }
+            } else if (pingKey === 'asuracoins') {
+              if (
+                normTitle.includes('asura coin') ||
+                normTitle.includes('asuracoin') ||
+                normTitle.includes('asura coins') ||
+                normTitle.includes('asuracoins')
+              ) {
+                mentionRoles.push(`<@&${normalizedPings[dbKey]}>`);
+              }
+            } else if (pingKey === 'item beta') {
+              if (normTitle.includes('item beta')) {
+                mentionRoles.push(`<@&${normalizedPings[dbKey]}>`);
+              }
+            } else {
+              if (normTitle.includes(pingKey)) {
+                mentionRoles.push(`<@&${normalizedPings[dbKey]}>`);
+              }
+            }
           }
         }
 
@@ -243,11 +251,11 @@ async function processShop() {
   }
 }
 
-// SUPORTE A MÚLTIPLOS PREFIXOS, INCLUINDO "service " (com espaço)
+// SUPORTE A MÚLTIPLOS PREFIXOS, INCLUINDO "stock " (com espaço)
 botClient.on('messageCreate', async message => {
   if (message.author.bot) return;
   const prefixes = Array.isArray(prefix) ? prefix : [prefix];
-  if (!prefixes.includes('stock ')) prefixes.push('stock '); // Garante que "service " sempre será um prefixo válido
+  if (!prefixes.includes('stock ')) prefixes.push('stock ');
 
   const usedPrefix = prefixes.find(p => message.content.toLowerCase().startsWith(p.toLowerCase()));
   if (!usedPrefix) return;
