@@ -214,8 +214,8 @@ async function processShop() {
             mentionRoles.push(`<@&${normalizedPings['item beta']}>`);
           }
           // asura coin
-          if (normalizedPings['asura coin'] && normTitle.includes('asuracoins')) {
-            mentionRoles.push(`<@&${normalizedPings['asura coin']}>`);
+          if (normalizedPings['AsuraCoins'] && normTitle.includes('AsuraCoins')) {
+            mentionRoles.push(`<@&${normalizedPings['AsuraCoins']}>`);
           }
           // XP
           if (normalizedPings['xp'] && normTitle.includes('xp')) {
