@@ -1,5 +1,5 @@
 module.exports = {
   token: '',
   userToken: '',
-  prefix: ['js!', 'stock'],
+  prefix: ['s!', 'stock'],
 };
