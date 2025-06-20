@@ -254,6 +254,21 @@ async function processShop() {
 // SUPORTE A MÚLTIPLOS PREFIXOS, INCLUINDO "stock " (com espaço)
 botClient.on('messageCreate', async message => {
   if (message.author.bot) return;
+
+  // ==== NOVO BLOCO: RESPONDER QUANDO MENCIONADO OU RESPONDIDO ====
+  const botId = botClient.user.id;
+  const isMentioned = message.mentions.has(botId);
+  const isReplyToBot =
+    message.reference &&
+    (await message.channel.messages.fetch(message.reference.messageId).catch(() => null))?.author?.id === botId;
+
+  if (isMentioned || isReplyToBot) {
+    return message.reply({
+      content: "Meu prefixo é `s!`\nUse `s!help` para ver meus comandos!"
+    });
+  }
+  // ==== FIM DO NOVO BLOCO ====
+
   const prefixes = Array.isArray(prefix) ? prefix : [prefix];
   if (!prefixes.includes('stock ')) prefixes.push('stock ');
 
