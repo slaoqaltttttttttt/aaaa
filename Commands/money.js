@@ -17,17 +17,17 @@ module.exports = {
     }
 
     // Parâmetros diferentes por ID
-    let moneyMult, trainsMult;
+    let moneyMultA, trainsMultA;
     if (message.author.id === '840646649050562561') {
-      moneyMult = 1440.17;
-      trainsMult = 360.17;
+      moneyMultA = 1440 * 17;
+      trainsMultA = 360 * 17;
     } else if (message.author.id === '946569782508019764') {
-      moneyMult = 1440.10;
-      trainsMult = 360.10;
+      moneyMultA = 1440 * 10;
+      trainsMultA = 360 * 10;
     }
 
-    const totalMoney = (moneyMult * dias).toFixed(2);
-    const totalTrains = (trainsMult * dias).toFixed(2);
+    const totalMoney = (moneyMultA * dias).toFixed(2);
+    const totalTrains = (trainsMultA * dias).toFixed(2);
 
     const embed = new EmbedBuilder()
       .setTitle(`Resultado para ${message.member ? message.member.displayName : message.author.username}`)
