@@ -40,13 +40,13 @@ module.exports = {
     // IDs autorizados
     const allowedIds = ['840646649050562561', '946569782508019764'];
     if (!allowedIds.includes(message.author.id)) {
-      return message.reply('❌ Você não tem permissão para usar este comando.');
+      return message.reply('Você não tem permissão para usar este comando.');
     }
 
     // Argumento: número de dias
     const dias = parseInt(args[0], 10);
     if (isNaN(dias) || dias <= 0) {
-      return message.reply('❌ Você deve informar o número de dias como argumento. Ex: !money 3');
+      return message.reply('Você deve informar o número de dias como argumento. Ex: !money 3');
     }
 
     // Parâmetros diferentes por ID
