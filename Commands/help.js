@@ -14,7 +14,10 @@ module.exports = {
         '`s!pings`\n' +
         'Configure os pings de certos itens em stock, Shard Mitico, Galo Lendario, etc.\n\n' +
         '`s!stock`\n' +
-        'Veja o stock atual do asura shop.\n'
+        'Veja o stock atual do asura shop.\n\n' +
+        '`s!winrate`\n' +
+        'Calcule o seu winrate no bot\n' +
+        'Exemplo: `s!winrate 7889 756\n`'
       );
 
     await message.reply({ embeds: [helpEmbed] });
