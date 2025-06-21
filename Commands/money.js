@@ -52,10 +52,10 @@ module.exports = {
     // Parâmetros diferentes por ID
     let moneyMultA, trainsMultA;
     if (message.author.id === '840646649050562561') {
-      moneyMultA = 1440 * 21;
+      moneyMultA = 720 * 21;
       trainsMultA = 360 * 21;
     } else if (message.author.id === '946569782508019764') {
-      moneyMultA = 1440 * 10;
+      moneyMultA = 720 * 10;
       trainsMultA = 360 * 10;
     }
 
