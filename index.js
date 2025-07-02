@@ -9,7 +9,7 @@ const crypto = require('crypto');
 // Status padrão do bot
 // ===============================
 let statusType = ActivityType.Playing; // Valor padrão
-let statusText = "Asura Shop";         // Valor padrão
+let statusText = "Asura Stock";         // Valor padrão
 
 // (Opcional) Deixar global para acesso em comandos
 global.statusType = statusType;
