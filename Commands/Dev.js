@@ -46,6 +46,6 @@ module.exports = {
         `**Host:** ${host}`
       );
 
-    await message.reply ({ embeds: [embed] });
+    await message.send({ embeds: [embed] });
   }
 };
