@@ -1,9 +1,19 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection, ActivityType } = require('discord.js');
 const { prefix } = require('./config');
 const { Client: UserClient } = require('discord.js-selfbot-v13');
 const { Client: PgClient } = require('pg');
 const path = require('path');
 const crypto = require('crypto');
+
+// ===============================
+// Status padrão do bot
+// ===============================
+let statusType = ActivityType.Playing; // Valor padrão
+let statusText = "Asura Shop";         // Valor padrão
+
+// (Opcional) Deixar global para acesso em comandos
+global.statusType = statusType;
+global.statusText = statusText;
 
 // Pegando tokens das variáveis de ambiente
 const token = process.env.BOT_TOKEN;
@@ -289,6 +299,8 @@ botClient.on('messageCreate', async message => {
 
 botClient.once('ready', () => {
   console.log(`✅ Bot oficial conectado como ${botClient.user.tag}`);
+  // Seta o status ao ligar o bot
+  botClient.user.setActivity(statusText, { type: statusType });
 });
 
 userClient.once('ready', async () => {
