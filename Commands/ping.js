@@ -3,6 +3,7 @@ const { EmbedBuilder } = require('discord.js')
 /* COMANDO: ping */
 module.exports = {
   name: 'ping',
+  description: 'Veja o ping atual do bot',
   async execute(client, message, args) {
     try {
       const embedCalculando = new EmbedBuilder()
