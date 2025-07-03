@@ -40,13 +40,13 @@ module.exports = {
           `**Host:** ${host}`
         )
 
-      await message.reply({ embeds: [embed] })
+      await message.send({ embeds: [embed] })
     } catch (error) {
       const errorEmbed = new EmbedBuilder()
         .setTitle('Erro')
         .setDescription('Ocorreu um erro ao executar este comando.')
         .setColor(0x8B0000)
-      await message.reply({ embeds: [errorEmbed] })
+      await message.send({ embeds: [errorEmbed] })
     }
   }
 }
