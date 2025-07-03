@@ -3,6 +3,7 @@ const { EmbedBuilder } = require('discord.js')
 module.exports = {
   name: 'winrate',
   description: 'Calcula o winrate baseado em vitórias e derrotas.',
+  usage: 's!winrate <win> <lose>\nExemplo: s!winrate 20 5',
   async execute(client, message, args) {
     try {
       if (args.length < 2) {
