@@ -4,7 +4,7 @@ const { EmbedBuilder } = require('discord.js')
 module.exports = {
   name: 'ping',
   description: 'Veja o ping atual do bot',
-  usage: 's!ping'
+  usage: 's!ping',
   async execute(client, message, args) {
     try {
       const embedCalculando = new EmbedBuilder()
