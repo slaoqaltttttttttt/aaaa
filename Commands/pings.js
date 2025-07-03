@@ -22,7 +22,6 @@ module.exports = {
   description: 'Configure os pings de certos itens em stock, Shard Mitico, Galo Lendario, etc.',
   usage: 's!pings',
   async execute(client, message, args) {
-    // Verificação de permissão
     if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
       const errorEmbed = new EmbedBuilder()
         .setTitle('Erro')
@@ -31,7 +30,6 @@ module.exports = {
       return message.reply({ embeds: [errorEmbed] })
     }
 
-    // Embed inicial com botão configurar
     const embed = new EmbedBuilder()
       .setTitle('Pings necessários')
       .setDescription(pingNames.join('\n'))
@@ -56,13 +54,20 @@ module.exports = {
       return
     }
 
-    // Busca todos os cargos do servidor (exceto @everyone)
+    // Busca todos os cargos do servidor válidos (exclui @everyone e cargos de aplicação/bot)
+    // ROLE_MANAGEABLE: pode ser atribuído por bots
+    // ROLE_EDITABLE: pode ser editado pelo bot
+    // !role.managed -> não é de aplicação/bot
+    // !role.tags?.botId && !role.tags?.integrationId && !role.tags?.premiumSubscriberRole
     const roles = message.guild.roles.cache
-      .filter(role => role.id !== message.guild.id)
+      .filter(role =>
+        role.id !== message.guild.id && // exclui @everyone
+        !role.managed && // exclui cargos de aplicação/bot
+        (!role.tags || (!role.tags.botId && !role.tags.integrationId && !role.tags.premiumSubscriberRole))
+      )
       .sort((a, b) => b.position - a.position)
       .map(role => role)
 
-    // Prepara opções para o select menu
     const roleOptions = roles.map(role => ({
       label: role.name,
       value: role.id
@@ -86,23 +91,26 @@ module.exports = {
     }
 
     // Função para criar o select menu e botões
-    function getRow(finalStep = false) {
+    function getRow(finalStep = false, selectedRole) {
       return [
         new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder()
             .setCustomId('select_role')
-            .setPlaceholder('Selecione um cargo...')
-            .addOptions(roleOptions)
+            .setPlaceholder(selectedRole ? 'Cargo selecionado!' : 'Selecione um cargo...')
+            .setOptions(roleOptions)
+            .setDisabled(Boolean(selectedRole)) // se já selecionou, desativa menu até clicar próximo/pular
         ),
         new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('proximo')
             .setLabel(finalStep ? 'Finalizar' : 'Próximo')
-            .setStyle(ButtonStyle.Success),
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(!selectedRole), // só habilita se selecionou algum cargo
           new ButtonBuilder()
             .setCustomId('pular')
             .setLabel('Pular')
             .setStyle(ButtonStyle.Secondary)
+            .setDisabled(false)
         )
       ]
     }
@@ -110,7 +118,7 @@ module.exports = {
     // Primeira edição: pede o primeiro cargo
     await sentMsg.edit({
       embeds: [getSelectionEmbed()],
-      components: getRow(current === pingNames.length - 1)
+      components: getRow(current === pingNames.length - 1, cargosSelecionados[current])
     })
 
     // Interação principal
@@ -120,28 +128,24 @@ module.exports = {
     })
 
     collector.on('collect', async interaction => {
+      // Seleção de cargo: já mostra na lista e desativa menu
       if (interaction.isStringSelectMenu()) {
-        // Salva o cargo selecionado para o ping atual
         cargosSelecionados[current] = interaction.values[0]
-        await interaction.deferUpdate()
+        await interaction.update({
+          embeds: [getSelectionEmbed()],
+          components: getRow(current === pingNames.length - 1, cargosSelecionados[current])
+        })
       } else if (interaction.isButton()) {
-        if (interaction.customId === 'proximo' || interaction.customId === 'finalizar') {
-          if (!cargosSelecionados[current]) {
-            // Se não selecionou nada, ignora
-            await interaction.deferUpdate()
-            return
-          }
+        if (interaction.customId === 'proximo') {
+          // Vai ao próximo ping
           current++
         } else if (interaction.customId === 'pular') {
           cargosSelecionados[current] = null
           current++
         }
-        await interaction.deferUpdate()
-
-        // Verifica se terminou
+        // Parou?
         if (current >= pingNames.length) {
           collector.stop('done')
-          // Salva no banco e envia embed de sucesso
           try {
             await pg.query('DELETE FROM pings WHERE guild_id = $1', [message.guild.id])
             for (let i = 0; i < pingNames.length; i++) {
@@ -156,28 +160,26 @@ module.exports = {
               .setTitle('Sucesso')
               .setDescription('Os pings foram salvos com sucesso!')
               .setColor(0x43b581)
-            await sentMsg.edit({ embeds: [doneEmbed], components: [] })
+            await interaction.update({ embeds: [doneEmbed], components: [] })
           } catch (err) {
             const errorEmbed = new EmbedBuilder()
               .setTitle('Erro')
               .setDescription('Ocorreu um erro ao salvar os pings no banco de dados.' +
                 (err?.message ? `\nMotivo: ${err.message}` : ''))
               .setColor(0x8B0000)
-            await sentMsg.edit({ embeds: [errorEmbed], components: [] })
+            await interaction.update({ embeds: [errorEmbed], components: [] })
           }
           return
         }
-
-        // Atualiza embed e componentes para o próximo cargo
-        await sentMsg.edit({
+        // Atualiza embed para o próximo cargo, menu limpo e ativado
+        await interaction.update({
           embeds: [getSelectionEmbed()],
-          components: getRow(current === pingNames.length - 1)
+          components: getRow(current === pingNames.length - 1, cargosSelecionados[current])
         })
       }
     })
 
     collector.on('end', async () => {
-      // Se não finalizar, remove componentes
       if (current < pingNames.length) {
         await sentMsg.edit({ components: [] }).catch(() => {})
       }
