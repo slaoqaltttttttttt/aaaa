@@ -11,8 +11,8 @@ function normalizeText(str) {
 }
 
 module.exports = {
-  name: 'stock',
-  description: 'Mostra o shop/stock atual do Asura Shop',
+  name: 'shop',
+  description: 'Mostra o stock atual do Asura shop',
   usage: 's!stock',
   async execute(botClient, message, args) {
     try {
