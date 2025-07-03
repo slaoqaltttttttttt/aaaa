@@ -55,10 +55,6 @@ module.exports = {
     }
 
     // Busca todos os cargos do servidor válidos (exclui @everyone e cargos de aplicação/bot)
-    // ROLE_MANAGEABLE: pode ser atribuído por bots
-    // ROLE_EDITABLE: pode ser editado pelo bot
-    // !role.managed -> não é de aplicação/bot
-    // !role.tags?.botId && !role.tags?.integrationId && !role.tags?.premiumSubscriberRole
     const roles = message.guild.roles.cache
       .filter(role =>
         role.id !== message.guild.id && // exclui @everyone
@@ -91,21 +87,20 @@ module.exports = {
     }
 
     // Função para criar o select menu e botões
-    function getRow(finalStep = false, selectedRole) {
+    function getRow(finalStep = false) {
       return [
         new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder()
             .setCustomId('select_role')
-            .setPlaceholder(selectedRole ? 'Cargo selecionado!' : 'Selecione um cargo...')
-            .setOptions(roleOptions)
-            .setDisabled(Boolean(selectedRole)) // se já selecionou, desativa menu até clicar próximo/pular
+            .setPlaceholder('Selecione um cargo...')
+            .addOptions(roleOptions)
+            .setValue(cargosSelecionados[current] ? [cargosSelecionados[current]] : [])
         ),
         new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('proximo')
             .setLabel(finalStep ? 'Finalizar' : 'Próximo')
-            .setStyle(ButtonStyle.Success)
-            .setDisabled(!selectedRole), // só habilita se selecionou algum cargo
+            .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
             .setCustomId('pular')
             .setLabel('Pular')
@@ -118,26 +113,29 @@ module.exports = {
     // Primeira edição: pede o primeiro cargo
     await sentMsg.edit({
       embeds: [getSelectionEmbed()],
-      components: getRow(current === pingNames.length - 1, cargosSelecionados[current])
+      components: getRow(current === pingNames.length - 1)
     })
 
     // Interação principal
     const collector = sentMsg.createMessageComponentCollector({
-      filter: i => i.user.id === message.author.id,
       time: 5 * 60 * 1000
     })
 
     collector.on('collect', async interaction => {
-      // Seleção de cargo: já mostra na lista e desativa menu
+      if (interaction.user.id !== message.author.id) {
+        // Somente o autor pode interagir, os outros recebem erro padrão do Discord
+        return interaction.reply({ content: "Apenas quem executou o comando pode interagir.", ephemeral: true }).catch(() => {});
+      }
+
+      // Seleção de cargo: já mostra na lista e permite trocar quantas vezes quiser
       if (interaction.isStringSelectMenu()) {
         cargosSelecionados[current] = interaction.values[0]
         await interaction.update({
           embeds: [getSelectionEmbed()],
-          components: getRow(current === pingNames.length - 1, cargosSelecionados[current])
+          components: getRow(current === pingNames.length - 1)
         })
       } else if (interaction.isButton()) {
         if (interaction.customId === 'proximo') {
-          // Vai ao próximo ping
           current++
         } else if (interaction.customId === 'pular') {
           cargosSelecionados[current] = null
@@ -171,10 +169,9 @@ module.exports = {
           }
           return
         }
-        // Atualiza embed para o próximo cargo, menu limpo e ativado
         await interaction.update({
           embeds: [getSelectionEmbed()],
-          components: getRow(current === pingNames.length - 1, cargosSelecionados[current])
+          components: getRow(current === pingNames.length - 1)
         })
       }
     })
