@@ -22,7 +22,7 @@ module.exports = {
           .setTitle('Erro')
           .setDescription('Canal do shop não encontrado ou não é de texto.')
           .setColor(0x8B0000)
-        return message.send({ embeds: [errorEmbed] })
+        return message.channel.send({ embeds: [errorEmbed] })
       }
 
       if (botClient.userClient) {
@@ -36,7 +36,7 @@ module.exports = {
           .setTitle('Erro')
           .setDescription('Mensagem de asura shop não encontrada.')
           .setColor(0x8B0000)
-        return message.send({ embeds: [errorEmbed] })
+        return message.channel.send({ embeds: [errorEmbed] })
       }
 
       let options = []
@@ -58,7 +58,7 @@ module.exports = {
           .setTitle('Erro')
           .setDescription('Nenhuma opção encontrada no stock.')
           .setColor(0x8B0000)
-        return message.send({ embeds: [errorEmbed] })
+        return message.channel.send({ embeds: [errorEmbed] })
       }
 
       const categorias = {}
