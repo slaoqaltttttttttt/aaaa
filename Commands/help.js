@@ -13,12 +13,17 @@ module.exports = {
       const commandsPath = path.join(__dirname)
       const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'))
 
+      // Comandos que nunca devem aparecer
+      const comandosProibidos = ['help', 'money', 'dev', 'status']
+
       let desc = ''
 
       for (const file of commandFiles) {
-        if (file === 'help.js') continue // Não mostra o próprio help
-
         const command = require(path.join(commandsPath, file))
+        const nome = command.name || path.parse(file).name
+
+        // Não mostra comandos proibidos ou o próprio help
+        if (comandosProibidos.includes(nome)) continue
 
         // Verifica se o comando é restrito a certos ids
         if (
@@ -38,9 +43,8 @@ module.exports = {
           continue
         }
 
-        const nome = command.name || path.parse(file).name
         const descricao = command.description || 'Sem descrição'
-        const uso = command.usage ? `\nExemplo: \`${command.usage}\`` : ''
+        const uso = command.usage ? `\nUso: \`${command.usage}\`` : ''
 
         desc += `**${nome}**\n${descricao}${uso}\n\n`
       }
