@@ -13,6 +13,7 @@ function normalizeText(str) {
 module.exports = {
   name: 'stock',
   description: 'Mostra o shop/stock atual do Asura Shop',
+  usage: 's!stock',
   async execute(botClient, message, args) {
     try {
       const canalShop = await botClient.channels.fetch('1383489203870105641')
