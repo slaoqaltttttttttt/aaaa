@@ -45,11 +45,23 @@ module.exports = {
 
       const sentMsg = await message.channel.send({ embeds: [embed], components: [row] })
 
+      // Timer para desativar o botão após 5 minutos se ninguém clicar
+      const disableButtonTimeout = setTimeout(async () => {
+        await sentMsg.edit({ components: [] }).catch(() => {})
+      }, 5 * 60 * 1000)
+
       const filter = (i) => i.customId === 'configurar_pings' && i.user.id === message.author.id
-      const buttonInteraction = await sentMsg.awaitMessageComponent({ filter, time: 60000 }).catch(() => null)
+      let buttonInteraction
+      try {
+        buttonInteraction = await sentMsg.awaitMessageComponent({ filter, time: 5 * 60 * 1000 })
+      } catch {
+        buttonInteraction = null
+      }
+
+      clearTimeout(disableButtonTimeout)
 
       if (!buttonInteraction) {
-        await sentMsg.edit({ components: [] })
+        await sentMsg.edit({ components: [] }).catch(() => {})
         return
       }
 
@@ -57,15 +69,51 @@ module.exports = {
 
       const cargos = []
       let current = 0
+      let userMsgCount = 0
+      let idleTimeout = null
+      let finished = false
+
+      // Função auxiliar para parar o collector e marcar como finalizado
+      const stopCollector = (collector, reason) => {
+        if (finished) return
+        finished = true
+        collector.stop(reason)
+      }
 
       const collector = message.channel.createMessageCollector({
         filter: m => m.author.id === message.author.id,
         time: 5 * 60 * 1000
       })
 
-      await sentMsg.edit({ components: [] })
+      await sentMsg.edit({ components: [] }).catch(() => {})
+
+      // Função para resetar o timeout de inatividade
+      const resetIdleTimeout = () => {
+        if (idleTimeout) clearTimeout(idleTimeout)
+        idleTimeout = setTimeout(() => {
+          stopCollector(collector, 'idle')
+        }, 5 * 60 * 1000)
+      }
+
+      resetIdleTimeout()
 
       collector.on('collect', async (msg) => {
+        // Ignorar mensagens que são apenas menções de cargos
+        if (
+          msg.mentions.roles.size === 0 &&
+          msg.content.trim().length > 0
+        ) {
+          userMsgCount++
+        }
+
+        // Se o usuário enviou 10 mensagens não relacionadas a menções de cargos, para de observar
+        if (userMsgCount >= 10) {
+          stopCollector(collector, 'msglimit')
+          return
+        }
+
+        resetIdleTimeout()
+
         const role = msg.mentions.roles.first()
         if (!role) {
           const errorEmbed = new EmbedBuilder()
@@ -80,11 +128,12 @@ module.exports = {
         if (current < pingNames.length) {
           await msg.reply(`Cargo para ${pingNames[current]}`)
         } else {
-          collector.stop('done')
+          stopCollector(collector, 'done')
         }
       })
 
       collector.on('end', async (_, reason) => {
+        if (idleTimeout) clearTimeout(idleTimeout)
         if (reason !== 'done') return
 
         try {
