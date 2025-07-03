@@ -56,11 +56,11 @@ module.exports = {
 
       let moneyMultA, trainsMultA
       if (message.author.id === '840646649050562561') {
-        moneyMultA = 720 * 21
-        trainsMultA = 360 * 21
+        moneyMultA = 360 * 30
+        trainsMultA = 360 * 30
       } else if (message.author.id === '946569782508019764') {
-        moneyMultA = 720 * 10
-        trainsMultA = 360 * 10
+        moneyMultA = 360 * 17
+        trainsMultA = 360 * 17
       }
 
       const totalMoney = moneyMultA * dias
