@@ -29,8 +29,6 @@ module.exports = {
         await botClient.userClient.channels.cache.get('1383489203870105641').send('Asura shop')
       }
 
-      await new Promise(res => setTimeout(res, 8000))
-
       const mensagens = await canalShop.messages.fetch({ limit: 20 })
       const botMsg = mensagens.find(m => m.author.id === '470684281102925844' && (m.embeds.length > 0 || m.components.length > 0))
       if (!botMsg) {
