@@ -1,14 +1,12 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js')
 const { Client: PgClient } = require('pg')
 
-/* CONEXÃO BANCO DE DADOS */
 const pg = new PgClient({
   connectionString: 'postgresql://postgres:cBCiYNNlByhwLsEbvPAXTBiYfnkWmzkx@maglev.proxy.rlwy.net:32587/railway',
   ssl: { rejectUnauthorized: false }
 })
 pg.connect()
 
-/* NOMES DOS PINGS */
 const pingNames = [
   'Shard Epico',
   'Shard Lendario',
@@ -19,9 +17,10 @@ const pingNames = [
   'XP'
 ]
 
-/* COMANDO: pings */
 module.exports = {
   name: 'pings',
+  description: 'Configure os pings de certos itens em stock, Shard Mitico, Galo Lendario, etc.',
+  usage: 's!pings',
   async execute(client, message, args) {
     try {
       if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
