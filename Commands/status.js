@@ -1,9 +1,9 @@
 const { ActivityType, EmbedBuilder } = require("discord.js")
 
-/* COMANDO: status */
 module.exports = {
   name: "status",
   description: "Altera o status do bot (playing, listening, watching, competing)",
+  usage: 's!status <tipo> <mensagem>\nExemplo: s!status playing Olá Mundo',
   async execute(botClient, message, args) {
     try {
       if (message.author.id !== "946569782508019764") {
