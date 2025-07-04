@@ -92,8 +92,12 @@ module.exports = {
             new StringSelectMenuBuilder()
               .setCustomId('select_role')
               .setPlaceholder('Selecione um cargo...')
-              .addOptions(roleOptions)
-              .setValue(cargosSelecionados[current] ? [cargosSelecionados[current]] : [])
+              .addOptions(
+                roleOptions.map(option => ({
+                  ...option,
+                  default: option.value === cargosSelecionados[current]
+                }))
+              )
           ),
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -121,7 +125,7 @@ module.exports = {
       collector.on('collect', async interaction => {
         try {
           if (interaction.user.id !== message.author.id) {
-            // Outros usuários recebem erro padrão do Discord
+            // Outros usuários não podem interagir
             return;
           }
 
