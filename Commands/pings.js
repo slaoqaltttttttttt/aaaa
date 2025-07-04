@@ -12,7 +12,7 @@ const pingNames = [
   'Shard Lendario',
   'Shard Mitico',
   'Galo Lendario',
-  'Galo Divino'
+  'Galo Divino',
   'Item Beta',
   'AsuraCoins',
   'XP'
