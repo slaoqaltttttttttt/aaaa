@@ -14,7 +14,7 @@ module.exports = {
       const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'))
 
       // Comandos que nunca devem aparecer
-      const comandosProibidos = ['help', 'money', 'dev', 'status']
+      const comandosProibidos = ['help', 'money', 'dev', 'status', 'dbview']
 
       let desc = ''
 
