@@ -7,11 +7,12 @@ const pg = new PgClient({
 })
 pg.connect()
 
-const pingNames = [
+const pingNames = [ 
   'Shard Epico',
   'Shard Lendario',
   'Shard Mitico',
   'Galo Lendario',
+  'Galo Divino'
   'Item Beta',
   'AsuraCoins',
   'XP'
@@ -32,7 +33,7 @@ module.exports = {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('Pings necessários')
+        .setTitle('Lista de pings:')
         .setDescription(pingNames.join('\n'))
         .setColor(0x43b581)
 
@@ -49,14 +50,13 @@ module.exports = {
       const filter = i => i.customId === 'configurar_pings' && i.user.id === message.author.id
       let buttonInteraction
       try {
-        buttonInteraction = await sentMsg.awaitMessageComponent({ filter, time: 5 * 60 * 1000 })
+        buttonInteraction = await sentMsg.awaitMessageComponent({ filter, time: 7 * 60 * 1000 })
         await buttonInteraction.deferUpdate()
       } catch (err) {
         await sentMsg.edit({ components: [] }).catch(() => {})
         return
       }
 
-      // Busca todos os cargos válidos (sem bot, integração ou premium)
       const roles = message.guild.roles.cache
         .filter(role =>
           role.id !== message.guild.id &&
@@ -125,7 +125,6 @@ module.exports = {
       collector.on('collect', async interaction => {
         try {
           if (interaction.user.id !== message.author.id) {
-            // Outros usuários não podem interagir
             return;
           }
 
@@ -200,12 +199,10 @@ module.exports = {
         }
       })
     } catch (error) {
-      // Log detalhado para dev
       console.error('[Erro geral no comando pings]', error)
-      // Embed para usuários comuns, sem detalhes técnicos
       const errorEmbed = new EmbedBuilder()
         .setTitle('Erro')
-        .setDescription('Ocorreu um erro inesperado ao executar este comando. Por favor, tente novamente ou contate um administrador.')
+        .setDescription('Ocorreu um erro ao executar este comando.')
         .setColor(0x8B0000)
       await message.channel.send({ embeds: [errorEmbed] }).catch(() => {})
     }
