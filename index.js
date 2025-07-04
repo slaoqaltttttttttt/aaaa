@@ -71,7 +71,7 @@ const rarityColors = {
   comum:    0x888888,
   raro:     0x3498db,
   epico:    0x9b59b6,
-  lendario: 0xffd700,
+  lendario: 0xff7700,
   divino:   0xff00ff
 }
 
