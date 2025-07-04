@@ -168,6 +168,7 @@ async function processShop() {
           'shard lendario',
           'shard mitico',
           'galo lendario',
+          'galo divino',   // <-- Adicionado Galo Divino
           'item beta',
           'asuracoins',
           'xp'
@@ -185,6 +186,10 @@ async function processShop() {
 
             if (pingKey === 'galo lendario') {
               if (normTitle.includes('galo') && normDesc.includes('lendario')) {
+                mentionRoles.push(`<@&${normalizedPings[dbKey]}>`)
+              }
+            } else if (pingKey === 'galo divino') {
+              if (normTitle.includes('galo') && normDesc.includes('divino')) {
                 mentionRoles.push(`<@&${normalizedPings[dbKey]}>`)
               }
             } else if (pingKey === 'asuracoins') {
