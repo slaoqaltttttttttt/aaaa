@@ -59,6 +59,22 @@ function normalizeText(str) {
     : ''
 }
 
+/* RARIDADES E CORES */
+const rarityOrder = [
+  'comum',     // cinza   #888888
+  'raro',      // azul    #3498db
+  'epico',     // roxo    #9b59b6
+  'lendario',  // amarelo #FFD700
+  'divino'     // magenta #ff00ff
+]
+const rarityColors = {
+  comum:    0x888888,
+  raro:     0x3498db,
+  epico:    0x9b59b6,
+  lendario: 0xffd700,
+  divino:   0xff00ff
+}
+
 /* FUNÇÕES BANCO DE DADOS */
 async function getAllGuildSettings() {
   const res = await pg.query('SELECT * FROM guild_settings')
@@ -130,6 +146,21 @@ async function processShop() {
 
     const stockHash = getStockHash(options)
 
+    // DETECTAR MAIOR RARIDADE PRESENTE
+    let foundRarityIdx = -1
+    for (const opt of options) {
+      const descNorm = normalizeText(opt.desc)
+      for (let i = rarityOrder.length - 1; i >= 0; i--) {
+        if (descNorm.includes(rarityOrder[i])) {
+          foundRarityIdx = Math.max(foundRarityIdx, i)
+          break
+        }
+      }
+    }
+    const embedColor = foundRarityIdx >= 0
+      ? rarityColors[rarityOrder[foundRarityIdx]]
+      : 0xFFD700 // fallback amarelo
+
     const categorias = {}
     for (const opt of options) {
       const categoria = opt.desc.trim().toLowerCase()
@@ -145,7 +176,7 @@ async function processShop() {
     const shopEmbed = new EmbedBuilder()
       .setTitle('Asura Shop')
       .setDescription(descricao.trim())
-      .setColor(0xFFD700)
+      .setColor(embedColor)
       .setFooter({ text: 'Use "Asura shop" ou "j!shop" para comprar os itens em stock' })
 
     for (const guildId in settings) {
@@ -168,7 +199,7 @@ async function processShop() {
           'shard lendario',
           'shard mitico',
           'galo lendario',
-          'galo divino',   // <-- Adicionado Galo Divino
+          'galo divino',
           'item beta',
           'asuracoins',
           'xp'
