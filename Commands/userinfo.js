@@ -5,10 +5,34 @@ module.exports = {
   description: 'Mostra informações detalhadas de um usuário',
   async execute(botClient, message, args) {
     try {
-      const user = message.mentions.users.first();
-      if (!user) return message.reply('Você precisa mencionar um usuário!');
+      if (!args[0]) return message.reply('Você precisa mencionar um usuário, passar o ID ou a tag!');
 
-      const member = message.guild.members.cache.get(user.id);
+      let user;
+      let member;
+
+      // Tenta obter usuário por menção, ID ou tag
+      const mention = message.mentions.users.first();
+      if (mention) {
+        user = mention;
+      } else {
+        const input = args[0];
+        // Tenta buscar por ID
+        if (/^\d{17,19}$/.test(input)) {
+          user = await botClient.users.fetch(input).catch(() => null);
+        }
+
+        // Tenta buscar por tag (ex: nome#0000)
+        if (!user && input.includes('#')) {
+          const tagInput = args.join(' ');
+          user = botClient.users.cache.find(u => u.tag.toLowerCase() === tagInput.toLowerCase()) || null;
+        }
+      }
+
+      if (!user) return message.reply('Usuário não encontrado.');
+
+      // Tenta pegar membro do servidor
+      member = message.guild.members.cache.get(user.id) || null;
+
       const userTag = user.tag;
       const username = user.displayName || user.username;
       const isBot = user.bot ? ' (Bot)' : '';
@@ -18,6 +42,7 @@ module.exports = {
       const createdTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:F>`;
       const ageTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>`;
 
+      // Badges
       const badges = [];
       const flags = (await user.fetchFlags())?.toArray?.() || [];
 
@@ -42,36 +67,48 @@ module.exports = {
         badges.push(`Booster desde ${boostSince}`);
       }
 
-      const roles = member?.roles.cache
-        .filter(r => r.id !== message.guild.id)
-        .map(r => `<@&${r.id}>`)
-        .join(', ') || 'Nenhum';
+      // Presença (status online)
+      let status = 'offline';
+      let customStatus = 'Nenhum';
+      if (member?.presence) {
+        status = member.presence?.status || 'offline';
+        const activity = member.presence.activities.find(a => a.type === 4);
+        if (activity) customStatus = activity.state || 'Nenhum';
+      }
 
-      const joinedTimestamp = member?.joinedAt
-        ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>`
-        : 'Desconhecido';
+      // Começa a montar descrição
+      let description =
+        `### [${username}](${userLink})\n` +
+        `ID: \`${user.id}\`\n\n` +
+        `**User info**\n` +
+        `**Data de criação da conta:** ${createdTimestamp}\n` +
+        `**Idade da conta:** ${ageTimestamp}\n` +
+        `**Status:** ${status}\n` +
+        `**Status personalizado:** ${customStatus}\n` +
+        `**Badges:**\n${formatBadges(badges)}\n`;
 
-      const presence = member?.presence;
-      const status = presence?.status || 'offline';
-      const customStatus = presence?.activities?.find(a => a.type === 4)?.state || 'Nenhum';
+      // Server info só se for membro
+      if (member) {
+        const joinedTimestamp = member?.joinedAt
+          ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>`
+          : 'Desconhecido';
+
+        const roles = member?.roles.cache
+          .filter(r => r.id !== message.guild.id)
+          .map(r => `<@&${r.id}>`)
+          .join(', ') || 'Nenhum';
+
+        description +=
+          `\n**Server info**\n` +
+          `**Entrou no servidor:** ${joinedTimestamp}\n` +
+          `**Cargos:** ${roles}`;
+      }
 
       const embed = new EmbedBuilder()
         .setAuthor({ name: `Informações do usuário ${userTag}${isBot}`, iconURL: avatar })
         .setThumbnail(avatar)
         .setColor(0x5865F2)
-        .setDescription(
-          `### [${username}](${userLink})\n` +
-          `ID: \`${user.id}\`\n\n` +
-          `**Data de criação da conta:** ${createdTimestamp}\n` +
-          `**Idade da conta:** ${ageTimestamp}\n` +
-          `**Status:** ${status}\n` +
-          `**Status personalizado:** ${customStatus}\n` +
-          `**Badges:**\n${formatBadges(badges)}`
-        )
-        .addFields(
-          { name: 'Entrou no servidor', value: joinedTimestamp, inline: true },
-          { name: 'Cargos', value: roles, inline: false }
-        )
+        .setDescription(description)
         .setFooter({ text: `Pedido por ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
       message.channel.send({ embeds: [embed] });
