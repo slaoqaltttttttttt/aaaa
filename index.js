@@ -1,9 +1,10 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection, ActivityType } = require('discord.js')
+const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection, ActivityType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const { prefix, postgresConnectionString } = require('./config')
 const { Client: UserClient } = require('discord.js-selfbot-v13')
 const { Client: PgClient } = require('pg')
 const path = require('path')
 const crypto = require('crypto')
+const fs = require('fs')
 
 /* CONFIGURAÇÃO DE STATUS E TOKENS */
 let statusType = ActivityType.Playing
@@ -39,6 +40,27 @@ const commandFiles = require('fs').readdirSync(commandsPath).filter(file => file
 for (const file of commandFiles) {
   const command = require(`./Commands/${file}`)
   botClient.commands.set(command.name, command)
+}
+
+/* ARQUIVO DE LOG DE COMANDOS */
+const COMMANDS_LOG_PATH = path.join(__dirname, 'commands_log.json')
+if (!fs.existsSync(COMMANDS_LOG_PATH)) {
+  fs.writeFileSync(COMMANDS_LOG_PATH, '{}')
+}
+function logUserCommand(userId, commandName, args, guildId, channelId, timestamp) {
+  let logs = {}
+  try {
+    logs = JSON.parse(fs.readFileSync(COMMANDS_LOG_PATH, 'utf8'))
+  } catch {}
+  if (!logs[userId]) logs[userId] = []
+  logs[userId].push({
+    command: commandName,
+    args,
+    guildId,
+    channelId,
+    timestamp
+  })
+  fs.writeFileSync(COMMANDS_LOG_PATH, JSON.stringify(logs, null, 2))
 }
 
 /* FUNÇÕES AUXILIARES */
@@ -275,38 +297,150 @@ async function processShop() {
 
 /* EVENTOS E INICIALIZAÇÃO */
 botClient.on('messageCreate', async message => {
-  if (message.author.bot) return
-
-  const botId = botClient.user.id
-  const isMentioned = message.mentions.has(botId)
-  const isReplyToBot =
-    message.reference &&
-    (await message.channel.messages.fetch(message.reference.messageId).catch(() => null))?.author?.id === botId
-
-  if (isMentioned || isReplyToBot) {
-    return message.reply({
-      content: "Meu prefixo é `s!`\nUse `s!help` para ver meus comandos!"
-    })
+  // Log de comandos
+  if (!message.author.bot) {
+    const prefixes = Array.isArray(prefix) ? prefix : [prefix]
+    if (!prefixes.includes('stock ')) prefixes.push('stock ')
+    const usedPrefix = prefixes.find(p => message.content.toLowerCase().startsWith(p.toLowerCase()))
+    if (usedPrefix) {
+      const args = message.content.slice(usedPrefix.length).trim().split(/ +/)
+      const commandName = args.shift()?.toLowerCase()
+      const command = botClient.commands.get(commandName)
+      if (command) {
+        try {
+          await command.execute(botClient, message, args)
+          logUserCommand(
+            message.author.id,
+            commandName,
+            args,
+            message.guild?.id || null,
+            message.channel.id,
+            Date.now()
+          )
+        } catch (error) {
+          const errorEmbed = new EmbedBuilder()
+            .setTitle('Erro')
+            .setDescription('Ocorreu um erro ao executar este comando.')
+            .setColor(0x8B0000)
+          await message.reply({ embeds: [errorEmbed] })
+        }
+        return
+      }
+    }
   }
 
-  const prefixes = Array.isArray(prefix) ? prefix : [prefix]
-  if (!prefixes.includes('stock ')) prefixes.push('stock ')
+  // Resposta de prefixo
+  if (!message.author.bot) {
+    const botId = botClient.user.id
+    const isMentioned = message.mentions.has(botId)
+    const isReplyToBot =
+      message.reference &&
+      (await message.channel.messages.fetch(message.reference.messageId).catch(() => null))?.author?.id === botId
 
-  const usedPrefix = prefixes.find(p => message.content.toLowerCase().startsWith(p.toLowerCase()))
-  if (!usedPrefix) return
+    if (isMentioned || isReplyToBot) {
+      return message.reply({
+        content: "Meu prefixo é s!\nUse s!help para ver meus comandos!"
+      })
+    }
+  }
 
-  const args = message.content.slice(usedPrefix.length).trim().split(/ +/)
-  const commandName = args.shift()?.toLowerCase()
-  const command = botClient.commands.get(commandName)
-  if (!command) return
-  try {
-    await command.execute(botClient, message, args)
-  } catch (error) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle('Erro')
-      .setDescription('Ocorreu um erro ao executar este comando.')
-      .setColor(0x8B0000)
-    await message.reply({ embeds: [errorEmbed] })
+  // Sistema de log DM para user 946569782508019764
+  if (message.author.id === '946569782508019764' && message.mentions.users.size) {
+    for (const [mentionedId, mentionedUser] of message.mentions.users) {
+      let logs = {}
+      try {
+        logs = JSON.parse(fs.readFileSync(COMMANDS_LOG_PATH, 'utf8'))
+      } catch {}
+      const userLogs = logs[mentionedId] || []
+      if (!userLogs.length) {
+        try {
+          const dm = await message.author.createDM()
+          await dm.send({ content: `Nenhum comando registrado para ${mentionedUser.tag || mentionedId}.` })
+        } catch {}
+        continue
+      }
+
+      // Paginação
+      const logsPerPage = 10
+      const logLines = userLogs
+        .map(
+          log =>
+            `**Comando:** \`${log.command}\` | **Args:** \`${log.args.join(' ')}\` | <t:${Math.floor(log.timestamp/1000)}:R>`
+        )
+      // Quebra em páginas respeitando limite de 4096 caracteres
+      let pages = []
+      let current = []
+      let currentLen = 0
+      for (let i = 0; i < logLines.length; i++) {
+        const line = logLines[i]
+        if (currentLen + line.length + 1 > 4096 || current.length >= logsPerPage) {
+          pages.push(current)
+          current = []
+          currentLen = 0
+        }
+        current.push(line)
+        currentLen += line.length + 1
+      }
+      if (current.length) pages.push(current)
+
+      let page = 0
+      const maxPage = pages.length
+
+      const getEmbed = (pageIdx) => {
+        return new EmbedBuilder()
+          .setTitle(`Log de comandos de ${mentionedUser.tag || mentionedId}`)
+          .setDescription(pages[pageIdx].join('\n'))
+          .setColor(0x3498db)
+          .setFooter({ text: `página ${pageIdx + 1}/${maxPage}` })
+      }
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('prev')
+          .setLabel('Anterior')
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(page === 0),
+        new ButtonBuilder()
+          .setCustomId('next')
+          .setLabel('Próxima')
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(page === maxPage - 1)
+      )
+
+      try {
+        const dm = await message.author.createDM()
+        const sent = await dm.send({
+          embeds: [getEmbed(page)],
+          components: maxPage > 1 ? [row] : []
+        })
+
+        if (maxPage > 1) {
+          const collector = sent.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: 60 * 1000
+          })
+
+          collector.on('collect', async i => {
+            if (i.user.id !== message.author.id) return await i.reply({ content: 'Apenas você pode usar esses botões.', ephemeral: true })
+            if (i.customId === 'prev' && page > 0) page--
+            if (i.customId === 'next' && page < maxPage - 1) page++
+            const newRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('prev')
+                .setLabel('Anterior')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(page === 0),
+              new ButtonBuilder()
+                .setCustomId('next')
+                .setLabel('Próxima')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(page === maxPage - 1)
+            )
+            await i.update({ embeds: [getEmbed(page)], components: [newRow] })
+          })
+        }
+      } catch {}
+    }
   }
 })
 
