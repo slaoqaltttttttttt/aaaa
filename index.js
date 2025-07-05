@@ -362,36 +362,26 @@ botClient.on('messageCreate', async message => {
 
       // Paginação
       const logsPerPage = 10
-      const logLines = userLogs
-        .map(
-          log =>
-            `**Comando:** \`${log.command}\` | **Args:** \`${log.args.join(' ')}\` | <t:${Math.floor(log.timestamp/1000)}:R>`
-        )
-      // Quebra em páginas respeitando limite de 4096 caracteres
-      let pages = []
-      let current = []
-      let currentLen = 0
-      for (let i = 0; i < logLines.length; i++) {
-        const line = logLines[i]
-        if (currentLen + line.length + 1 > 4096 || current.length >= logsPerPage) {
-          pages.push(current)
-          current = []
-          currentLen = 0
-        }
-        current.push(line)
-        currentLen += line.length + 1
-      }
-      if (current.length) pages.push(current)
-
+      // Já temos userLogs prontos, vamos dividir em páginas:
+      const maxPage = Math.ceil(userLogs.length / logsPerPage)
       let page = 0
-      const maxPage = pages.length
 
       const getEmbed = (pageIdx) => {
-        return new EmbedBuilder()
+        const embed = new EmbedBuilder()
           .setTitle(`Log de comandos de ${mentionedUser.tag || mentionedId}`)
-          .setDescription(pages[pageIdx].join('\n'))
           .setColor(0x3498db)
-          .setFooter({ text: `página ${pageIdx + 1}/${maxPage}` })
+          .setFooter({ text: `Página ${pageIdx + 1} / ${maxPage}` })
+
+        const logsPage = userLogs.slice(pageIdx * logsPerPage, (pageIdx + 1) * logsPerPage)
+        for (const log of logsPage) {
+          embed.addFields({
+            name: `Comando: \`${log.command}\`  |  <t:${Math.floor(log.timestamp / 1000)}:R>`,
+            value: log.args.length > 0 ? `**Args:** \`${log.args.join(' ')}\`` : '*Sem argumentos*',
+            inline: false
+          })
+        }
+
+        return embed
       }
 
       const row = new ActionRowBuilder().addComponents(
