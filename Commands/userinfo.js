@@ -1,5 +1,4 @@
 const { EmbedBuilder } = require('discord.js');
-const moment = require('moment');
 
 module.exports = {
   name: 'userinfo',
@@ -16,7 +15,6 @@ module.exports = {
       const userLink = `https://discord.com/users/${user.id}`;
       const avatar = user.displayAvatarURL({ dynamic: true, size: 1024 });
 
-      const createdAt = moment(user.createdAt);
       const createdTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:F>`;
       const ageTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>`;
 
@@ -38,6 +36,7 @@ module.exports = {
       }
 
       if (user.avatar?.startsWith('a_')) badges.push('Nitro (GIF)');
+
       if (member?.premiumSince) {
         const boostSince = `<t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`;
         badges.push(`Booster desde ${boostSince}`);
