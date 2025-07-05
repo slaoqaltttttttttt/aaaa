@@ -13,7 +13,6 @@
   "dependencies": {
     "discord.js": "^14.19.3",
     "discord.js-selfbot-v13": "^3.6.1",
-    "pg": "^8.16.0",
-    "moment": "^2.29.4"
+    "pg": "^8.16.0"
   }
 }
