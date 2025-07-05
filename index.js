@@ -64,7 +64,8 @@ const rarityOrder = [
   'comum',     // cinza   #888888
   'raro',      // azul    #3498db
   'epico',     // roxo    #9b59b6
-  'lendario',  // amarelo #FFD700
+  'lendario',  // laranja #ff7700
+  'mitico',    // branco  #ffffff
   'divino'     // magenta #ff00ff
 ]
 const rarityColors = {
@@ -72,6 +73,7 @@ const rarityColors = {
   raro:     0x3498db,
   epico:    0x9b59b6,
   lendario: 0xff7700,
+  mitico:   0xffffff,
   divino:   0xff00ff
 }
 
@@ -157,9 +159,12 @@ async function processShop() {
         }
       }
     }
-    const embedColor = foundRarityIdx >= 0
-      ? rarityColors[rarityOrder[foundRarityIdx]]
-      : 0xFFD700 // fallback amarelo
+    
+    let embedColor = 0xFFD700 // fallback amarelo
+    if (foundRarityIdx >= 0) {
+      const highestRarity = rarityOrder[foundRarityIdx]
+      embedColor = highestRarity === 'mitico' ? 0xffffff : rarityColors[highestRarity]
+    }
 
     const categorias = {}
     for (const opt of options) {
