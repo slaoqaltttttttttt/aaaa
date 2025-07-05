@@ -1,8 +1,9 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, PermissionsBitField } = require('discord.js')
 const { Client: PgClient } = require('pg')
+const { postgresConnectionString } = require('../config')
 
 const pg = new PgClient({
-  connectionString: 'postgresql://postgres:cBCiYNNlByhwLsEbvPAXTBiYfnkWmzkx@maglev.proxy.rlwy.net:32587/railway',
+  connectionString: postgresConnectionString,
   ssl: { rejectUnauthorized: false }
 })
 pg.connect()
