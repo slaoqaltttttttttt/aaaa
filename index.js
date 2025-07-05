@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection, ActivityType } = require('discord.js')
-const { prefix } = require('./config')
+const { prefix, postgresConnectionString } = require('./config')
 const { Client: UserClient } = require('discord.js-selfbot-v13')
 const { Client: PgClient } = require('pg')
 const path = require('path')
@@ -15,7 +15,7 @@ const userToken = process.env.USER_TOKEN
 
 /* CONEXÃO BANCO DE DADOS */
 const pg = new PgClient({
-  connectionString: 'postgresql://postgres:cBCiYNNlByhwLsEbvPAXTBiYfnkWmzkx@maglev.proxy.rlwy.net:32587/railway',
+  connectionString: postgresConnectionString,
   ssl: { rejectUnauthorized: false }
 })
 pg.connect()
