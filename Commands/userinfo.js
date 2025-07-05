@@ -5,32 +5,34 @@ module.exports = {
   description: 'Mostra informações detalhadas de um usuário',
   async execute(botClient, message, args) {
     try {
-      if (!args[0]) return message.reply('Você precisa mencionar um usuário, passar o ID ou a tag!');
-
       let user;
       let member;
 
-      // Tenta obter usuário por menção, ID ou tag
+      const input = args.join(' ').trim();
+
+      // 1. Mencionado
       const mention = message.mentions.users.first();
       if (mention) {
         user = mention;
-      } else {
-        const input = args[0];
-        // Tenta buscar por ID
-        if (/^\d{17,19}$/.test(input)) {
-          user = await botClient.users.fetch(input).catch(() => null);
-        }
-
-        // Tenta buscar por tag (ex: nome#0000)
-        if (!user && input.includes('#')) {
-          const tagInput = args.join(' ');
-          user = botClient.users.cache.find(u => u.tag.toLowerCase() === tagInput.toLowerCase()) || null;
-        }
       }
 
-      if (!user) return message.reply('Usuário não encontrado.');
+      // 2. ID
+      else if (/^\d{17,19}$/.test(input)) {
+        user = await botClient.users.fetch(input).catch(() => null);
+      }
 
-      // Tenta pegar membro do servidor
+      // 3. Nome de usuário
+      else if (input.length >= 2) {
+        const search = input.toLowerCase();
+        user = botClient.users.cache.find(u =>
+          u.username.toLowerCase() === search
+        ) || null;
+      }
+
+      // 4. Nenhum argumento: usar quem executou
+      if (!user) user = message.author;
+
+      // Tenta pegar membro
       member = message.guild.members.cache.get(user.id) || null;
 
       const userTag = user.tag;
@@ -67,16 +69,26 @@ module.exports = {
         badges.push(`Booster desde ${boostSince}`);
       }
 
-      // Presença (status online)
+      // Presença
       let status = 'offline';
       let customStatus = 'Nenhum';
+      let platform = 'Desconhecida';
+
       if (member?.presence) {
         status = member.presence?.status || 'offline';
+
         const activity = member.presence.activities.find(a => a.type === 4);
         if (activity) customStatus = activity.state || 'Nenhum';
+
+        const clientStatus = member.presence.clientStatus;
+        if (clientStatus) {
+          if (clientStatus.desktop) platform = 'Desktop';
+          else if (clientStatus.mobile) platform = 'Mobile';
+          else if (clientStatus.web) platform = 'Web';
+        }
       }
 
-      // Começa a montar descrição
+      // Descrição
       let description =
         `### [${username}](${userLink})\n` +
         `ID: \`${user.id}\`\n\n` +
@@ -85,15 +97,16 @@ module.exports = {
         `**Idade da conta:** ${ageTimestamp}\n` +
         `**Status:** ${status}\n` +
         `**Status personalizado:** ${customStatus}\n` +
+        `**Plataforma:** ${platform}\n` +
         `**Badges:**\n${formatBadges(badges)}\n`;
 
-      // Server info só se for membro
+      // Se estiver no servidor, mostra server info
       if (member) {
-        const joinedTimestamp = member?.joinedAt
+        const joinedTimestamp = member.joinedAt
           ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>`
           : 'Desconhecido';
 
-        const roles = member?.roles.cache
+        const roles = member.roles.cache
           .filter(r => r.id !== message.guild.id)
           .map(r => `<@&${r.id}>`)
           .join(', ') || 'Nenhum';
@@ -109,7 +122,7 @@ module.exports = {
         .setThumbnail(avatar)
         .setColor(0x5865F2)
         .setDescription(description)
-        .setFooter({ text: `Pedido por ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+        .setFooter({ text: `executado por ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
       message.channel.send({ embeds: [embed] });
 
