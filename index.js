@@ -6,7 +6,6 @@ const path = require('path')
 const crypto = require('crypto')
 const fs = require('fs')
 
-/* CONFIGURAÇÃO DE STATUS E TOKENS */
 let statusType = ActivityType.Playing
 let statusText = "Asura Stock"
 global.statusType = statusType
@@ -14,26 +13,23 @@ global.statusText = statusText
 const token = process.env.BOT_TOKEN
 const userToken = process.env.USER_TOKEN
 
-/* CONEXÃO BANCO DE DADOS */
 const pg = new PgClient({
   connectionString: postgresConnectionString,
   ssl: { rejectUnauthorized: false }
 })
 pg.connect()
 
-/* INSTÂNCIA DE CLIENTES */
 const botClient = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,     
-    GatewayIntentBits.GuildPresences   
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences
   ]
 })
 const userClient = new UserClient()
 
-/* CARREGAMENTO DE COMANDOS */
 botClient.commands = new Collection()
 const commandsPath = path.join(__dirname, 'Commands')
 const commandFiles = require('fs').readdirSync(commandsPath).filter(file => file.endsWith('.js'))
@@ -42,7 +38,6 @@ for (const file of commandFiles) {
   botClient.commands.set(command.name, command)
 }
 
-/* ARQUIVO DE LOG DE COMANDOS */
 const COMMANDS_LOG_PATH = path.join(__dirname, 'commands_log.json')
 if (!fs.existsSync(COMMANDS_LOG_PATH)) {
   fs.writeFileSync(COMMANDS_LOG_PATH, '{}')
@@ -63,7 +58,6 @@ function logUserCommand(userId, commandName, args, guildId, channelId, timestamp
   fs.writeFileSync(COMMANDS_LOG_PATH, JSON.stringify(logs, null, 2))
 }
 
-/* FUNÇÕES AUXILIARES */
 function normalizeOptions(options) {
   return options
     .map(opt => `${opt.title.trim().toLowerCase()}|${opt.desc.trim().toLowerCase()}`)
@@ -83,14 +77,13 @@ function normalizeText(str) {
     : ''
 }
 
-/* RARIDADES E CORES */
 const rarityOrder = [
-  'comum',     // cinza   #888888
-  'raro',      // azul    #3498db
-  'epico',     // roxo    #9b59b6
-  'lendario',  // laranja #ff7700
-  'mitico',    // branco  #ffffff
-  'divino'     // magenta #ff00ff
+  'comum',
+  'raro',
+  'epico',
+  'lendario',
+  'mitico',
+  'divino'
 ]
 const rarityColors = {
   comum:    0x888888,
@@ -101,7 +94,6 @@ const rarityColors = {
   divino:   0xff00ff
 }
 
-/* FUNÇÕES BANCO DE DADOS */
 async function getAllGuildSettings() {
   const res = await pg.query('SELECT * FROM guild_settings')
   const obj = {}
@@ -139,7 +131,6 @@ async function saveSentStock(guildId, channelId, stockHash) {
   )
 }
 
-/* SHOP AUTOMÁTICO */
 async function processShop() {
   try {
     const settings = await getAllGuildSettings()
@@ -172,7 +163,6 @@ async function processShop() {
 
     const stockHash = getStockHash(options)
 
-    // DETECTAR MAIOR RARIDADE PRESENTE
     let foundRarityIdx = -1
     for (const opt of options) {
       const descNorm = normalizeText(opt.desc)
@@ -184,7 +174,7 @@ async function processShop() {
       }
     }
     
-    let embedColor = 0xFFD700 // fallback amarelo
+    let embedColor = 0xFFD700
     if (foundRarityIdx >= 0) {
       const highestRarity = rarityOrder[foundRarityIdx]
       embedColor = highestRarity === 'mitico' ? 0xffffff : rarityColors[highestRarity]
@@ -295,9 +285,7 @@ async function processShop() {
   } catch (error) {}
 }
 
-/* EVENTOS E INICIALIZAÇÃO */
 botClient.on('messageCreate', async message => {
-  // Log de comandos
   if (!message.author.bot) {
     const prefixes = Array.isArray(prefix) ? prefix : [prefix]
     if (!prefixes.includes('stock ')) prefixes.push('stock ')
@@ -329,7 +317,6 @@ botClient.on('messageCreate', async message => {
     }
   }
 
-  // Resposta de prefixo
   if (!message.author.bot) {
     const botId = botClient.user.id
     const isMentioned = message.mentions.has(botId)
@@ -344,31 +331,50 @@ botClient.on('messageCreate', async message => {
     }
   }
 
-  // Sistema de log DM para user 946569782508019764
-  if (message.author.id === '946569782508019764' && message.mentions.users.size) {
-    for (const [mentionedId, mentionedUser] of message.mentions.users) {
+  if (message.author.id === '946569782508019764' && message.content.toLowerCase().startsWith('logs')) {
+    let parts = message.content.trim().split(/\s+/)
+    let targetId = null
+
+    if (parts.length > 1) {
+      let mention = parts[1]
+      if (mention.startsWith('<@') && mention.endsWith('>')) {
+        mention = mention.replace(/^<@!?/, '').replace(/>$/, '')
+        targetId = mention
+      } else if (/^\d{17,19}$/.test(mention)) {
+        targetId = mention
+      }
+    }
+
+    if (!targetId) {
+      try {
+        const dm = await message.author.createDM()
+        await dm.send('Por favor, mencione um usuário ou forneça um ID válido após o comando logs.')
+      } catch {}
+      return
+    }
+
+    try {
       let logs = {}
       try {
         logs = JSON.parse(fs.readFileSync(COMMANDS_LOG_PATH, 'utf8'))
       } catch {}
-      const userLogs = logs[mentionedId] || []
+
+      const userLogs = logs[targetId] || []
       if (!userLogs.length) {
         try {
           const dm = await message.author.createDM()
-          await dm.send({ content: `Nenhum comando registrado para ${mentionedUser.tag || mentionedId}.` })
+          await dm.send({ content: `Nenhum comando registrado para <@${targetId}> (${targetId}).` })
         } catch {}
-        continue
+        return
       }
 
-      // Paginação
       const logsPerPage = 10
-      // Já temos userLogs prontos, vamos dividir em páginas:
       const maxPage = Math.ceil(userLogs.length / logsPerPage)
       let page = 0
 
       const getEmbed = (pageIdx) => {
         const embed = new EmbedBuilder()
-          .setTitle(`Log de comandos de ${mentionedUser.tag || mentionedId}`)
+          .setTitle(`Log de comandos de <@${targetId}>`)
           .setColor(0x3498db)
           .setFooter({ text: `Página ${pageIdx + 1} / ${maxPage}` })
 
@@ -376,11 +382,10 @@ botClient.on('messageCreate', async message => {
         for (const log of logsPage) {
           embed.addFields({
             name: `Comando: \`${log.command}\`  |  <t:${Math.floor(log.timestamp / 1000)}:R>`,
-            value: log.args.length > 0 ? `**Args:** \`${log.args.join(' ')}\`` : '*Sem argumentos*',
+            value: log.args.length > 0 ? `Args: \`${log.args.join(' ')}\`` : '*Sem argumentos*',
             inline: false
           })
         }
-
         return embed
       }
 
@@ -430,7 +435,7 @@ botClient.on('messageCreate', async message => {
           })
         }
       } catch {}
-    }
+    } catch {}
   }
 })
 
