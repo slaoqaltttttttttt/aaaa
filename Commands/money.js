@@ -1,6 +1,5 @@
 const { EmbedBuilder } = require('discord.js')
 
-/* UNIDADES PARA FORMATAÇÃO DE NÚMEROS */
 const units = [
   { value: 1e27, symbol: "no" },
   { value: 1e24, symbol: "oc" },
@@ -13,7 +12,6 @@ const units = [
   { value: 1e3, symbol: "k" }
 ]
 
-/* FORMATAÇÃO DE NÚMEROS */
 function formatNumberParts(n) {
   if (n < 1000) return n.toString()
   let result = ""
@@ -30,7 +28,6 @@ function formatNumberParts(n) {
   return result.trim()
 }
 
-/* COMANDO: money */
 module.exports = {
   name: 'money',
   description: 'Faz multiplicações de money e trains para usuários autorizados.',
