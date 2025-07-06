@@ -2,18 +2,15 @@ const { EmbedBuilder } = require('discord.js')
 const fs = require('fs')
 const path = require('path')
 
-/* COMANDO: help */
 module.exports = {
   name: 'help',
   description: 'Mostra a lista de comandos e como usar o bot de stock',
   usage: 's!help',
   async execute(botClient, message, args) {
     try {
-      // Caminho da pasta dos comandos
       const commandsPath = path.join(__dirname)
       const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'))
 
-      // Comandos que nunca devem aparecer
       const comandosProibidos = ['help', 'money', 'dev', 'status', 'dbview']
 
       let desc = ''
@@ -22,10 +19,8 @@ module.exports = {
         const command = require(path.join(commandsPath, file))
         const nome = command.name || path.parse(file).name
 
-        // Não mostra comandos proibidos ou o próprio help
         if (comandosProibidos.includes(nome)) continue
 
-        // Verifica se o comando é restrito a certos ids
         if (
           command.onlyIds &&
           Array.isArray(command.onlyIds) &&
@@ -35,8 +30,6 @@ module.exports = {
           continue
         }
 
-        // Verificação alternativa para comandos que restringem por ID hardcoded (ex: status)
-        // Procura pelo trecho comum: if (message.author.id !== "...") return ...
         const fileContent = fs.readFileSync(path.join(commandsPath, file), 'utf8')
         const idRestrictMatch = fileContent.match(/if\s*\(\s*message\.author\.id\s*!==\s*['"`](\d+)['"`]\s*\)/)
         if (idRestrictMatch && idRestrictMatch[1] && message.author.id !== idRestrictMatch[1]) {
