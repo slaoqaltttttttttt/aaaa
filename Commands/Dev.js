@@ -3,9 +3,7 @@ const os = require('os')
 
 module.exports = {
   name: 'dev',
-  description: 'Mostra informações de desenvolvimento e uso do bot.',
   async execute(client, message, args) {
-
     try {
       const servidores = client.guilds.cache.size
       const ramUsadaMB = (process.memoryUsage().rss / 1024 / 1024).toFixed(2)
@@ -13,6 +11,9 @@ module.exports = {
       const memoriaLivreMB = (os.freemem() / 1024 / 1024).toFixed(2)
       const memoriaUsadaMB = (memoriaTotalMB - memoriaLivreMB).toFixed(2)
       const ping = Math.round(client.ws.ping)
+      const shardId = message.guild ? message.guild.shardId : 'N/A'
+      const totalShards = client.shard ? client.shard.count : 1
+      const availableShards = client.shard ? client.shard.ids.length : 1
 
       function formatUptime(ms) {
         let totalSeconds = parseInt(ms / 1000, 10)
@@ -27,10 +28,11 @@ module.exports = {
       const host = "Koyeb"
 
       const embed = new EmbedBuilder()
-        .setTitle('Info')
+        .setTitle(`Info [Shard ${shardId}]`)
         .setColor('#00BFFF')
         .setDescription(
           `**Servidores:** ${servidores}\n` +
+          `**Shards:** ${totalShards} (${availableShards} disponíveis)\n` +
           `**Ram usada:** ${ramUsadaMB} MB\n` +
           `**Memoria usada:** ${memoriaUsadaMB} MB\n` +
           `**Ping:** ${ping}ms\n` +
