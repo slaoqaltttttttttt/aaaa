@@ -67,11 +67,18 @@ module.exports = {
           const { data: { text } } = await Tesseract.recognize(filePath, 'por')
           fs.unlinkSync(filePath)
 
-          const nome = text.match(/^(.*)\n/)?[1] || 'Desconhecido'
-          const tipo = text.match(/Tipo\s+(\w+)/i)?[1] || 'Desconhecido'
-          const level = text.match(/Level\s+(\d+)/i)?[1] || 'Desconhecido'
-          const item = text.match(/Item\s+(.*)/i)?[1] || 'Desconhecido'
-          const trials = text.match(/Trials\s+(\d+\/\d+)/i)?[1] || 'Desconhecido'
+          // Correção na extração do texto
+          const nomeMatch = text.match(/^(.*)\n/)
+          const tipoMatch = text.match(/Tipo\s+(\w+)/i)
+          const levelMatch = text.match(/Level\s+(\d+)/i)
+          const itemMatch = text.match(/Item\s+(.*)/i)
+          const trialsMatch = text.match(/Trials\s+(\d+\/\d+)/i)
+
+          const nome = nomeMatch ? nomeMatch[1] : 'Desconhecido'
+          const tipo = tipoMatch ? tipoMatch[1] : 'Desconhecido'
+          const level = levelMatch ? levelMatch[1] : 'Desconhecido'
+          const item = itemMatch ? itemMatch[1] : 'Desconhecido'
+          const trials = trialsMatch ? trialsMatch[1] : 'Desconhecido'
 
           const galoEmbed = new EmbedBuilder()
             .setTitle(nome)
