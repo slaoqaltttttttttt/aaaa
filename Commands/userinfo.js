@@ -1,11 +1,10 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
 const { createWorker } = require('tesseract.js');
-const { userClient } = require('../index');
 
 module.exports = {
   name: 'userinfo',
   description: 'Mostra informações detalhadas de um usuário',
-  async execute(botClient, message, args) {
+  async execute(botClient, message, args, userClient) {
     try {
       let user;
       let member;
@@ -38,7 +37,7 @@ module.exports = {
       const ageTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>`;
 
       const badges = [];
-      const flags = (await user.fetchFlags())?.toArray?.() || [];
+      const flags = (await user.fetch()).flags?.toArray?.() || [];
 
       for (const flag of flags) {
         switch (flag) {
