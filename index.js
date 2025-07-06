@@ -28,7 +28,6 @@ const botClient = new Client({
     GatewayIntentBits.GuildPresences
   ]
 })
-
 const userClient = new UserClient()
 
 botClient.commands = new Collection()
@@ -43,7 +42,6 @@ const COMMANDS_LOG_PATH = path.join(__dirname, 'commands_log.json')
 if (!fs.existsSync(COMMANDS_LOG_PATH)) {
   fs.writeFileSync(COMMANDS_LOG_PATH, '{}')
 }
-
 function logUserCommand(userId, commandName, args, guildId, channelId, timestamp) {
   let logs = {}
   try {
@@ -66,16 +64,13 @@ function normalizeOptions(options) {
     .sort()
     .join('\n')
 }
-
 function capitalize(txt) {
   return txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase()
 }
-
 function getStockHash(options) {
   const normalized = normalizeOptions(options)
   return crypto.createHash('md5').update(normalized).digest('hex')
 }
-
 function normalizeText(str) {
   return str
     ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -90,7 +85,6 @@ const rarityOrder = [
   'mitico',
   'divino'
 ]
-
 const rarityColors = {
   comum:    0x888888,
   raro:     0x3498db,
@@ -108,7 +102,6 @@ async function getAllGuildSettings() {
   }
   return obj
 }
-
 async function getAllSentStocks() {
   const res = await pg.query('SELECT * FROM sent_stocks')
   const obj = {}
@@ -118,7 +111,6 @@ async function getAllSentStocks() {
   }
   return obj
 }
-
 async function getAllPings() {
   const res = await pg.query('SELECT * FROM pings')
   const obj = {}
@@ -128,7 +120,6 @@ async function getAllPings() {
   }
   return obj
 }
-
 async function saveSentStock(guildId, channelId, stockHash) {
   await pg.query(
     'DELETE FROM sent_stocks WHERE guild_id = $1 AND channel_id = $2',
