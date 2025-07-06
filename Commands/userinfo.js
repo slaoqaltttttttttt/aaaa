@@ -1,138 +1,93 @@
-const { EmbedBuilder } = require('discord.js');
+const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType
+} = require('discord.js')
+const Tesseract = require('tesseract.js')
+const fetch = require('node-fetch')
+const fs = require('fs')
+const path = require('path')
+const { userClient } = require('../index')
 
 module.exports = {
   name: 'userinfo',
   description: 'Mostra informações detalhadas de um usuário',
   async execute(botClient, message, args) {
     try {
-      let user;
-      let member;
-
-      const input = args.join(' ').trim();
-
-      const mention = message.mentions.users.first();
-      if (mention) {
-        user = mention;
+      let user = message.mentions.users.first()
+      if (!user && args[0] && /^\d{17,19}$/.test(args[0])) {
+        user = await botClient.users.fetch(args[0]).catch(() => null)
       }
+      if (!user) user = message.author
 
-      else if (/^\d{17,19}$/.test(input)) {
-        user = await botClient.users.fetch(input).catch(() => null);
-      }
+      const member = message.guild.members.cache.get(user.id)
+      const avatar = user.displayAvatarURL({ dynamic: true, size: 1024 })
+      const created = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:F>`
+      const age = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>`
 
-      else if (input.length >= 2) {
-        const search = input.toLowerCase();
-        user = botClient.users.cache.find(u =>
-          u.username.toLowerCase() === search
-        ) || null;
-      }
-
-      if (!user) user = message.author;
-      
-      member = message.guild.members.cache.get(user.id) || null;
-
-      const userTag = user.tag;
-      const username = user.displayName || user.username;
-      const isBot = user.bot ? ' (Bot)' : '';
-      const userLink = `https://discord.com/users/${user.id}`;
-      const avatar = user.displayAvatarURL({ dynamic: true, size: 1024 });
-
-      const createdTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:F>`;
-      const ageTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>`;
-
-
-      const badges = [];
-      const flags = (await user.fetchFlags())?.toArray?.() || [];
-
-      for (const flag of flags) {
-        switch (flag) {
-          case 'ActiveDeveloper': badges.push('Desenvolvedor Ativo'); break;
-          case 'HypeSquadOnlineHouse1': badges.push('HypeSquad Bravery'); break;
-          case 'HypeSquadOnlineHouse2': badges.push('HypeSquad Brilliance'); break;
-          case 'HypeSquadOnlineHouse3': badges.push('HypeSquad Balance'); break;
-          case 'Hypesquad': badges.push('HypeSquad'); break;
-          case 'BugHunterLevel1': badges.push('Bug Hunter Lv1'); break;
-          case 'BugHunterLevel2': badges.push('Bug Hunter Lv2'); break;
-          case 'VerifiedBot': badges.push('Bot Verificado'); break;
-          case 'PremiumEarlySupporter': badges.push('Early Supporter'); break;
-        }
-      }
-
-      if (user.avatar?.startsWith('a_')) badges.push('Nitro (GIF)');
-
-      if (member?.premiumSince) {
-        const boostSince = `<t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`;
-        badges.push(`Booster desde ${boostSince}`);
-      }
-
-      let status = 'offline';
-      let customStatus = 'Nenhum';
-      let platform = 'Desconhecida';
-
-      if (member?.presence) {
-        status = member.presence?.status || 'offline';
-
-        const activity = member.presence.activities.find(a => a.type === 4);
-        if (activity) customStatus = activity.state || 'Nenhum';
-
-        const clientStatus = member.presence.clientStatus;
-        if (clientStatus) {
-          if (clientStatus.desktop) platform = 'Desktop';
-          else if (clientStatus.mobile) platform = 'Mobile';
-          else if (clientStatus.web) platform = 'Web';
-        }
-      }
-
-      let description =
-        `### [${username}](${userLink})\n` +
+      const description = `### [${user.username}](https://discord.com/users/${user.id})\n` +
         `ID: \`${user.id}\`\n\n` +
-        `**User info**\n` +
-        `**Data de criação da conta:** ${createdTimestamp}\n` +
-        `**Idade da conta:** ${ageTimestamp}\n` +
-        `**Status:** ${status}\n` +
-        `**Status personalizado:** ${customStatus}\n` +
-        `**Plataforma:** ${platform}\n` +
-        `**Badges:**\n${formatBadges(badges)}\n`;
+        `**Data de criação:** ${created}\n` +
+        `**Idade da conta:** ${age}`
 
-      if (member) {
-        const joinedTimestamp = member.joinedAt
-          ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>`
-          : 'Desconhecido';
-
-        const roles = member.roles.cache
-          .filter(r => r.id !== message.guild.id)
-          .map(r => `<@&${r.id}>`)
-          .join(', ') || 'Nenhum';
-
-        description +=
-          `\n**Server info**\n` +
-          `**Entrou no servidor:** ${joinedTimestamp}\n` +
-          `**Cargos:** ${roles}`;
-      }
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('info_galo')
+          .setLabel('info galo')
+          .setStyle(ButtonStyle.Secondary)
+      )
 
       const embed = new EmbedBuilder()
-        .setAuthor({ name: `Informações do usuário ${userTag}${isBot}`, iconURL: avatar })
+        .setAuthor({ name: `Informações de ${user.tag}`, iconURL: avatar })
         .setThumbnail(avatar)
         .setColor(0x5865F2)
         .setDescription(description)
-        .setFooter({ text: `executado por ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
-      message.channel.send({ embeds: [embed] });
+      const sent = await message.channel.send({ embeds: [embed], components: [row] })
 
-    } catch (error) {
-      const errorEmbed = new EmbedBuilder()
-        .setTitle('Erro')
-        .setDescription('Ocorreu um erro ao tentar mostrar as informações do usuário.')
-        .setColor(0x8B0000);
-      message.channel.send({ embeds: [errorEmbed] });
+      const collector = sent.createMessageComponentCollector({ componentType: ComponentType.Button, time: 15000 })
+
+      collector.on('collect', async i => {
+        if (i.user.id !== message.author.id) return i.reply({ content: 'Apenas o autor pode usar esse botão.', ephemeral: true })
+        await i.deferReply({ ephemeral: true })
+
+        const canal = await userClient.channels.fetch('1383489203870105641')
+        await canal.send(`Asura galo <@${user.id}>`)
+
+        const filter = m => m.author.id === '470684281102925844' && m.attachments.size > 0
+        canal.awaitMessages({ filter, max: 1, time: 10000 }).then(async collected => {
+          const image = collected.first().attachments.first().url
+          const response = await fetch(image)
+          const buffer = await response.buffer()
+          const filePath = path.join(__dirname, 'galo_temp.png')
+          fs.writeFileSync(filePath, buffer)
+
+          const { data: { text } } = await Tesseract.recognize(filePath, 'por')
+          fs.unlinkSync(filePath)
+
+          const nome = text.match(/^(.*)\n/)?[1] || 'Desconhecido'
+          const tipo = text.match(/Tipo\s+(\w+)/i)?[1] || 'Desconhecido'
+          const level = text.match(/Level\s+(\d+)/i)?[1] || 'Desconhecido'
+          const item = text.match(/Item\s+(.*)/i)?[1] || 'Desconhecido'
+          const trials = text.match(/Trials\s+(\d+\/\d+)/i)?[1] || 'Desconhecido'
+
+          const galoEmbed = new EmbedBuilder()
+            .setTitle(nome)
+            .setDescription(`**Tipo de galo:** ${tipo}\n**Level:** ${level}\n**Item atual:** ${item}\n**Quantidade de trials:** ${trials}`)
+            .setColor(0xff9966)
+            .setImage(image)
+
+          await i.editReply({ embeds: [galoEmbed] })
+        }).catch(() => {
+          i.editReply({ content: 'Não encontrei a imagem enviada pelo bot.' })
+        })
+      })
+
+    } catch (err) {
+      console.error(err)
+      await message.reply({ content: 'Erro ao buscar informações do usuário.' })
     }
   }
-};
-
-function formatBadges(badges) {
-  if (badges.length === 0) return 'Nenhuma';
-  const lines = [];
-  for (let i = 0; i < badges.length; i += 3) {
-    lines.push(badges.slice(i, i + 3).join(', '));
-  }
-  return lines.join('\n');
 }
