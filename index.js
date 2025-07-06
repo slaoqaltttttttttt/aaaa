@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection, ActivityType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ShardingManager } = require('discord.js')
+const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection, ActivityType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const { prefix, postgresConnectionString } = require('./config')
 const { Client: UserClient } = require('discord.js-selfbot-v13')
 const { Client: PgClient } = require('pg')
@@ -19,20 +19,7 @@ const pg = new PgClient({
 })
 pg.connect()
 
-const manager = new ShardingManager('./index.js', {
-  token: token,
-  totalShards: 'auto'
-})
-
-manager.on('shardCreate', shard => {
-  console.log(`[Shard Manager] Launched shard ${shard.id}`)
-})
-
-manager.spawn()
-
 const botClient = new Client({
-  shards: 'auto',
-  shardCount: manager.totalShards,
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
