@@ -1,5 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
-const { createWorker } = require('tesseract.js');
+const fetch = require('node-fetch');
 
 module.exports = {
   name: 'userinfo',
@@ -147,12 +147,20 @@ module.exports = {
 
           const imageUrl = respostaBot.attachments.first().url;
 
-          const worker = await createWorker();
-          await worker.load();
-          await worker.loadLanguage('eng');
-          await worker.initialize('eng');
-          const { data: { text } } = await worker.recognize(imageUrl);
-          await worker.terminate();
+          const ocrResponse = await fetch('https://api.ocr.space/parse/imageurl', {
+            method: 'POST',
+            headers: {
+              apikey: process.env.OCR_SPACE_API_KEY,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              url: imageUrl,
+              language: 'eng'
+            })
+          });
+
+          const ocrData = await ocrResponse.json();
+          const text = ocrData.ParsedResults?.[0]?.ParsedText || '';
 
           const nome = (text.split('\n').find(l => l.trim().length > 5 && !/item|level|tipo|trial/i.test(l)) || 'Desconhecido').trim();
           const tipo = (text.match(/Tipo: (\w+)/i) || [])[1] || 'Desconhecido';
