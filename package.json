@@ -13,6 +13,8 @@
   "dependencies": {
     "discord.js": "^14.19.3",
     "discord.js-selfbot-v13": "^3.6.1",
-    "pg": "^8.16.0"
+    "pg": "^8.16.0",
+    "node-fetch": "^3.4.0",
+    "tesseract.js": "^4.0.2"
   }
 }
