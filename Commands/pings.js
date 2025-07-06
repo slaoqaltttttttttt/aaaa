@@ -47,7 +47,6 @@ module.exports = {
 
       const sentMsg = await message.channel.send({ embeds: [embed], components: [configRow] })
 
-      // Aguarda clique no botão
       const filter = i => i.customId === 'configurar_pings' && i.user.id === message.author.id
       let buttonInteraction
       try {
@@ -160,9 +159,7 @@ module.exports = {
                   .setColor(0x43b581)
                 await interaction.update({ embeds: [doneEmbed], components: [] })
               } catch (err) {
-                // Log detalhado para dev
                 console.error('[Erro ao salvar no banco]', err)
-                // Embed amigável para usuário
                 const errorEmbed = new EmbedBuilder()
                   .setTitle('Erro ao salvar os pings')
                   .setDescription('Ocorreu um erro ao salvar os pings no banco de dados. Por favor, tente novamente ou contate um administrador.')
@@ -177,9 +174,7 @@ module.exports = {
             })
           }
         } catch (err) {
-          // Log detalhado para dev
           console.error('[Erro na interação de seleção de ping]', err)
-          // Exibe embed amigável para usuário
           try {
             await interaction.reply({
               embeds: [
