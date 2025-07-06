@@ -155,24 +155,71 @@ module.exports = {
             },
             body: new URLSearchParams({
               url: imageUrl,
-              language: 'eng'
+              language: 'por',
+              isOverlayRequired: false,
+              iscreatesearchablepdf: false,
+              issearchablepdfhidetextlayer: false
             })
           });
 
           const ocrData = await ocrResponse.json();
           const text = ocrData.ParsedResults?.[0]?.ParsedText || '';
 
-          const nome = (text.split('\n').find(l => l.trim().length > 5 && !/item|level|tipo|trial/i.test(l)) || 'Desconhecido').trim();
-          const tipo = (text.match(/Tipo: (\w+)/i) || [])[1] || 'Desconhecido';
-          const level = (text.match(/Level: (\d+)/i) || [])[1] || 'Desconhecido';
-          const item = (text.match(/Item atual: (.*)/i) || [])[1] || 'Nenhum';
-          const trials = (text.match(/(\d+\/\d+)\s+Trials/i) || [])[1] || '0/0';
+          // Processamento avançado do texto
+          const lines = text.split('\n').filter(line => line.trim() !== '');
+          
+          // Extrair nome (primeira linha relevante)
+          let nome = 'Desconhecido';
+          for (const line of lines) {
+            if (line.trim() && !/tipo|level|item|trials|habilidades|equipadas/i.test(line.toLowerCase())) {
+              nome = line.trim();
+              break;
+            }
+          }
+
+          // Extrair demais informações
+          const tipo = extractValue(lines, /tipo\s*:\s*(.+)/i) || 'Desconhecido';
+          const level = extractValue(lines, /level\s*:\s*(\d+)\s*\/\s*(\d+)/i) || '0/0';
+          const item = extractValue(lines, /item\s*:\s*(.+)/i) || 'Nenhum';
+          const trials = extractValue(lines, /trials\s*:\s*(\d+\s*\/\s*\d+)/i) || '0/0';
+
+          // Extrair habilidades
+          const habilidades = [];
+          let inHabilidadesSection = false;
+
+          for (const line of lines) {
+            if (/habilidades\s+equipadas/i.test(line)) {
+              inHabilidadesSection = true;
+              continue;
+            }
+
+            if (inHabilidadesSection) {
+              const habilidadeMatch = line.match(/^-\s*(.+?)\s+(\d+\s*-\s*\d+)/);
+              if (habilidadeMatch) {
+                habilidades.push({
+                  nome: habilidadeMatch[1].trim(),
+                  dano: habilidadeMatch[2].trim()
+                });
+              }
+            }
+          }
+
+          // Construir embed
+          let descricao = `**Tipo:** ${tipo}\n` +
+                          `**Level:** ${level.split('/')[0]} (${level.split('/')[1]} resets)\n` +
+                          `**Item:** ${item}\n` +
+                          `**Trials:** ${trials}\n\n`;
+
+          if (habilidades.length > 0) {
+            descricao += '**HABILIDADES EQUIPADAS**\n';
+            habilidades.forEach(habilidade => {
+              descricao += `- ${habilidade.nome}: ${habilidade.dano}\n`;
+            });
+          }
 
           const galoEmbed = new EmbedBuilder()
             .setTitle(nome)
-            .setDescription(
-              `Tipo de galo: ${tipo}\nLevel: ${level}\nItem atual: ${item}\nQuantidade de trials: ${trials}`
-            )
+            .setDescription(descricao)
             .setColor(0x00AE86)
             .setThumbnail(imageUrl);
 
@@ -181,6 +228,7 @@ module.exports = {
       });
 
     } catch (error) {
+      console.error('Erro no comando userinfo:', error);
       const errorEmbed = new EmbedBuilder()
         .setTitle('Erro')
         .setDescription('Ocorreu um erro ao tentar mostrar as informações do usuário.')
@@ -197,4 +245,17 @@ function formatBadges(badges) {
     lines.push(badges.slice(i, i + 3).join(', '));
   }
   return lines.join('\n');
+}
+
+function extractValue(lines, regex) {
+  for (const line of lines) {
+    const match = line.match(regex);
+    if (match) {
+      if (match[2]) { 
+        return `${match[1]}/${match[2]}`;
+      }
+      return match[1].trim();
+    }
+  }
+  return null;
 }
