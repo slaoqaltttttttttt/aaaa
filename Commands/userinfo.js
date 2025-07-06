@@ -135,7 +135,7 @@ module.exports = {
         const conteudo = `Asura galo <@${user.id}>`;
 
         const canal = await userClient.channels.fetch(canalId);
-        if (!canal || !canal.isTextBased()) return i.editReply({ content: 'Erro ao acessar canal do galo.' });
+        if (!canal || canal.type !== 0) return i.editReply({ content: 'Erro ao acessar canal do galo.' });
 
         const enviado = await canal.send(conteudo);
 
