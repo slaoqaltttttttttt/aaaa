@@ -12,12 +12,10 @@ module.exports = {
   name: 'dbview',
   description: 'Veja o banco de dados',
   async execute(client, message, args) {
-    // Só permite para o ID especificado
     if (message.author.id !== '946569782508019764') {
       return;
     }
 
-    // Busca as tabelas do banco
     let tables;
     try {
       const res = await pg.query(`
@@ -34,7 +32,6 @@ module.exports = {
 
     if (!tables.length) return message.reply('Nenhuma tabela encontrada.');
 
-    // Menu de seleção de tabela
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId('select_db_table')
       .setPlaceholder('Selecione uma tabela...')
@@ -50,7 +47,6 @@ module.exports = {
       components: [row]
     });
 
-    // Collector para aguardar seleção
     const collector = sentMsg.createMessageComponentCollector({
       filter: i => i.user.id === message.author.id && i.customId === 'select_db_table',
       time: 2 * 60 * 1000
@@ -67,18 +63,15 @@ module.exports = {
         return interaction.reply({ content: 'Erro ao ler a tabela.', ephemeral: true });
       }
 
-      // Formatação especial para as tabelas específicas
       if (table === 'guild_settings') {
         if (!rows.length) {
           return interaction.reply({ content: 'A tabela está vazia.', ephemeral: true });
         }
         const fields = [];
         for (const row of rows) {
-          // guild_id -> nome do server
           let guildName = row.guild_id;
           let guildObj = client.guilds.cache.get(row.guild_id);
           if (guildObj) guildName = guildObj.name;
-          // stock_channel_id -> menção do canal
           let channelMention = row.stock_channel_id ? `<#${row.stock_channel_id}>` : 'Nenhum';
           fields.push({
             name: guildName,
@@ -96,13 +89,10 @@ module.exports = {
         }
         const fields = [];
         for (const row of rows) {
-          // guild_id -> nome do server
           let guildName = row.guild_id;
           let guildObj = client.guilds.cache.get(row.guild_id);
           if (guildObj) guildName = guildObj.name;
-          // role_id -> menção do cargo
           let roleMention = row.role_id ? `<@&${row.role_id}>` : 'Nenhum';
-          // ping_key -> apenas texto
           fields.push({
             name: `${guildName} - ${row.ping_key}`,
             value: `Cargo: ${roleMention}`
@@ -114,7 +104,6 @@ module.exports = {
           .addFields(fields);
         await interaction.update({ embeds: [embed], components: [] });
       } else {
-        // Outras tabelas: mostra tudo como texto mesmo
         if (!rows.length) {
           return interaction.reply({ content: 'A tabela está vazia.', ephemeral: true });
         }
