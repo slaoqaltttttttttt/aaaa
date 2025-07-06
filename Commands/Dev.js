@@ -1,14 +1,12 @@
 const { EmbedBuilder } = require('discord.js')
 const os = require('os')
 
-/* COMANDO: dev */
 module.exports = {
   name: 'dev',
   description: 'Mostra informações de desenvolvimento e uso do bot.',
   async execute(client, message, args) {
 
     try {
-      /* INFORMAÇÕES DE SERVIDOR/BOT */
       const servidores = client.guilds.cache.size
       const ramUsadaMB = (process.memoryUsage().rss / 1024 / 1024).toFixed(2)
       const memoriaTotalMB = (os.totalmem() / 1024 / 1024).toFixed(2)
