@@ -251,7 +251,7 @@ function extractValue(lines, regex) {
   for (const line of lines) {
     const match = line.match(regex);
     if (match) {
-      if (match[2]) { 
+      if (match[2]) { // Para valores como level (25/7)
         return `${match[1]}/${match[2]}`;
       }
       return match[1].trim();
