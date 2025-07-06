@@ -1,4 +1,3 @@
-// utils/shard.js
 const { ShardingManager } = require('discord.js')
 const path = require('path')
 
