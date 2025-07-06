@@ -10,18 +10,15 @@ module.exports = {
 
       const input = args.join(' ').trim();
 
-      // 1. Mencionado
       const mention = message.mentions.users.first();
       if (mention) {
         user = mention;
       }
 
-      // 2. ID
       else if (/^\d{17,19}$/.test(input)) {
         user = await botClient.users.fetch(input).catch(() => null);
       }
 
-      // 3. Nome de usuário
       else if (input.length >= 2) {
         const search = input.toLowerCase();
         user = botClient.users.cache.find(u =>
@@ -29,10 +26,8 @@ module.exports = {
         ) || null;
       }
 
-      // 4. Nenhum argumento: usar quem executou
       if (!user) user = message.author;
-
-      // Tenta pegar membro
+      
       member = message.guild.members.cache.get(user.id) || null;
 
       const userTag = user.tag;
@@ -44,7 +39,7 @@ module.exports = {
       const createdTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:F>`;
       const ageTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>`;
 
-      // Badges
+
       const badges = [];
       const flags = (await user.fetchFlags())?.toArray?.() || [];
 
@@ -69,7 +64,6 @@ module.exports = {
         badges.push(`Booster desde ${boostSince}`);
       }
 
-      // Presença
       let status = 'offline';
       let customStatus = 'Nenhum';
       let platform = 'Desconhecida';
@@ -88,7 +82,6 @@ module.exports = {
         }
       }
 
-      // Descrição
       let description =
         `### [${username}](${userLink})\n` +
         `ID: \`${user.id}\`\n\n` +
@@ -100,7 +93,6 @@ module.exports = {
         `**Plataforma:** ${platform}\n` +
         `**Badges:**\n${formatBadges(badges)}\n`;
 
-      // Se estiver no servidor, mostra server info
       if (member) {
         const joinedTimestamp = member.joinedAt
           ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>`
