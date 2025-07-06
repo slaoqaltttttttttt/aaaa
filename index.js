@@ -296,7 +296,7 @@ botClient.on('messageCreate', async message => {
       const command = botClient.commands.get(commandName)
       if (command) {
         try {
-          await command.execute(botClient, message, args)
+          await command.execute(botClient, message, args, userClient)
           logUserCommand(
             message.author.id,
             commandName,
