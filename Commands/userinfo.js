@@ -127,15 +127,15 @@ module.exports = {
       });
 
       collector.on('collect', async i => {
-        if (i.user.id !== message.author.id) return i.reply({ content: 'Apenas você pode usar este botão.', ephemeral: true });
+        if (i.user.id !== message.author.id) return i.reply({ content: 'Apenas você pode usar este botão.', flags: 64 });
 
-        await i.deferReply({ ephemeral: true });
+        await i.deferReply({ flags: 64 });
 
         const canalId = '1383489203870105641';
         const conteudo = `Asura galo <@${user.id}>`;
 
-        const canal = await userClient.channels.fetch(canalId);
-        if (!canal || canal.type !== 0) return i.editReply({ content: 'Erro ao acessar canal do galo.' });
+        const canal = await userClient.channels.fetch(canalId).catch(() => null);
+        if (!canal || typeof canal.send !== 'function') return i.editReply({ content: 'Erro ao acessar canal do galo.' });
 
         const enviado = await canal.send(conteudo);
 
@@ -154,7 +154,7 @@ module.exports = {
           const { data: { text } } = await worker.recognize(imageUrl);
           await worker.terminate();
 
-          const nome = (text.match(/(?<=\n)(.*Emo.*|.*God.*|.*Rooster.*)/i) || [])[0] || 'Desconhecido';
+          const nome = (text.split('\n').find(l => l.trim().length > 5 && !/item|level|tipo|trial/i.test(l)) || 'Desconhecido').trim();
           const tipo = (text.match(/Tipo: (\w+)/i) || [])[1] || 'Desconhecido';
           const level = (text.match(/Level: (\d+)/i) || [])[1] || 'Desconhecido';
           const item = (text.match(/Item atual: (.*)/i) || [])[1] || 'Nenhum';
