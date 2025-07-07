@@ -24,7 +24,9 @@ module.exports = {
       }
 
       if (!user) user = message.author;
-      
+
+      // Forçar fetch pra garantir acesso à bio
+      user = await user.fetch(true);
       member = message.guild.members.cache.get(user.id) || null;
 
       const userTag = user.tag;
@@ -78,6 +80,8 @@ module.exports = {
         }
       }
 
+      const aboutMe = user.bio || 'Não definido';
+
       let description =
         `### [${username}](${userLink})\n` +
         `ID: \`${user.id}\`\n\n` +
@@ -102,8 +106,11 @@ module.exports = {
         description +=
           `\n**Server info**\n` +
           `**Entrou no servidor:** ${joinedTimestamp}\n` +
-          `**Cargos:** ${roles}`;
+          `**Cargos:** ${roles}\n`;
       }
+
+      // Adiciona Sobre Mim no final
+      description += `\n**Sobre Mim:**\n\`\`\`\n${aboutMe}\n\`\`\``;
 
       const embed = new EmbedBuilder()
         .setAuthor({ name: `Informações do usuário ${userTag}${isBot}`, iconURL: avatar })
