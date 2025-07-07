@@ -4,6 +4,7 @@ const path = require('path')
 
 module.exports = {
   name: 'help',
+  aliases: ['ajuda', 'comandos', 'commands'],
   description: 'Mostra a lista de comandos e como usar o bot de stock',
   usage: 's!help',
   async execute(botClient, message, args) {
