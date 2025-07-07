@@ -33,7 +33,7 @@ module.exports = {
       const userTag = user.tag;
       const username = user.displayName || user.username;
       const isBot = user.bot ? ' (Bot)' : '';
-      const userLink = https://discord.com/users/${user.id};
+      const userLink = `https://discord.com/users/${user.id}`;
       const avatar = user.displayAvatarURL({ dynamic: true, size: 1024 });
 
       const createdTimestamp = <t:${Math.floor(user.createdAt.getTime() / 1000)}:F>;
