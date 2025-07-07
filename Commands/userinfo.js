@@ -1,5 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
+const Tesseract = require('tesseract.js');
 const fetch = require('node-fetch');
+const Jimp = require('jimp');
 
 module.exports = {
   name: 'userinfo',
@@ -18,9 +20,7 @@ module.exports = {
         user = await botClient.users.fetch(input).catch(() => null);
       } else if (input.length >= 2) {
         const search = input.toLowerCase();
-        user = botClient.users.cache.find(u =>
-          u.username.toLowerCase() === search
-        ) || null;
+        user = botClient.users.cache.find(u => u.username.toLowerCase() === search) || null;
       }
 
       if (!user) user = message.author;
@@ -78,31 +78,12 @@ module.exports = {
         }
       }
 
-      let description =
-        `### [${username}](${userLink})\n` +
-        `ID: \`${user.id}\`\n\n` +
-        `**User info**\n` +
-        `**Data de criação da conta:** ${createdTimestamp}\n` +
-        `**Idade da conta:** ${ageTimestamp}\n` +
-        `**Status:** ${status}\n` +
-        `**Status personalizado:** ${customStatus}\n` +
-        `**Plataforma:** ${platform}\n` +
-        `**Badges:**\n${formatBadges(badges)}\n`;
+      let description = `### [${username}](${userLink})\nID: \`${user.id}\`\n\n**User info**\n**Data de criação da conta:** ${createdTimestamp}\n**Idade da conta:** ${ageTimestamp}\n**Status:** ${status}\n**Status personalizado:** ${customStatus}\n**Plataforma:** ${platform}\n**Badges:**\n${formatBadges(badges)}\n`;
 
       if (member) {
-        const joinedTimestamp = member.joinedAt
-          ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>`
-          : 'Desconhecido';
-
-        const roles = member.roles.cache
-          .filter(r => r.id !== message.guild.id)
-          .map(r => `<@&${r.id}>`)
-          .join(', ') || 'Nenhum';
-
-        description +=
-          `\n**Server info**\n` +
-          `**Entrou no servidor:** ${joinedTimestamp}\n` +
-          `**Cargos:** ${roles}`;
+        const joinedTimestamp = member.joinedAt ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>` : 'Desconhecido';
+        const roles = member.roles.cache.filter(r => r.id !== message.guild.id).map(r => `<@&${r.id}>`).join(', ') || 'Nenhum';
+        description += `\n**Server info**\n**Entrou no servidor:** ${joinedTimestamp}\n**Cargos:** ${roles}`;
       }
 
       const embed = new EmbedBuilder()
@@ -123,7 +104,7 @@ module.exports = {
 
       const collector = sentMessage.createMessageComponentCollector({
         componentType: ComponentType.Button,
-        time: 15_000
+        time: 15000
       });
 
       collector.on('collect', async i => {
@@ -131,164 +112,61 @@ module.exports = {
 
         await i.deferReply({ ephemeral: true });
 
-        const canalId = '1383489203870105641';
-        const conteudo = `Asura galo <@${user.id}>`;
+        try {
+          const canalId = '1383489203870105641';
+          const canal = await userClient.channels.fetch(canalId);
+          await canal.send(`Asura galo <@${user.id}>`);
 
-        const canal = await userClient.channels.fetch(canalId).catch(() => null);
-        if (!canal || typeof canal.send !== 'function') return i.editReply({ content: 'Erro ao acessar canal do galo.' });
-
-        const enviado = await canal.send(conteudo);
-
-        setTimeout(async () => {
-          try {
+          setTimeout(async () => {
             const msgs = await canal.messages.fetch({ limit: 10 });
             const respostaBot = msgs.find(m => m.author.id === '470684281102925844' && m.attachments.size > 0);
 
             if (!respostaBot) return i.editReply({ content: 'Nenhuma imagem do galo recebida.' });
 
             const imageUrl = respostaBot.attachments.first().url;
+            const processedImage = await preprocessImage(imageUrl);
 
-            // Pré-processamento da imagem
-            const ocrResponse = await fetch('https://api.ocr.space/parse/imageurl', {
-              method: 'POST',
-              headers: {
-                apikey: process.env.OCR_SPACE_API_KEY,
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              body: new URLSearchParams({
-                url: imageUrl,
-                language: 'por',
-                isOverlayRequired: false,
-                iscreatesearchablepdf: false,
-                issearchablepdfhidetextlayer: false,
-                scale: true,
-                isTable: true,
-                OCREngine: 2 // Engine mais avançada
-              })
-            });
+            const { data: { text } } = await Tesseract.recognize(
+              processedImage,
+              'por',
+              { 
+                logger: m => console.log(m),
+                tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ./:-| ',
+                preserve_interword_spaces: '1'
+              }
+            );
 
-            const ocrData = await ocrResponse.json();
-            const text = ocrData.ParsedResults?.[0]?.ParsedText || '';
-
-            // Processamento avançado do texto
-            const lines = text.split('\n')
-              .map(line => line.replace(/[^a-zA-Z0-9\u00C0-\u017F\s\/\-:]/g, '').trim())
-              .filter(line => line.length > 0);
-
-            // Função para extrair valores com múltiplos padrões
-            const extractWithPatterns = (patterns, defaultValue = 'Desconhecido') => {
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            const extractField = (name, patterns) => {
               for (const pattern of patterns) {
                 for (const line of lines) {
                   const match = line.match(pattern);
-                  if (match && match[1]) {
-                    return match[1].trim();
-                  }
+                  if (match) return match[1].trim();
                 }
               }
-              return defaultValue;
+              return 'Desconhecido';
             };
 
-            // Extração robusta dos dados
-            const nome = extractWithPatterns([
-              /^(?!.*(tipo|level|item|trials|habilidades|equipadas))(.+)/i,
-              /nome[:]?\s*(.+)/i,
-              /galo[:]?\s*(.+)/i
-            ], 'Galo Desconhecido');
+            const nome = extractField('nome', [/^([^\n]+)$/, /nome[:]?\s*(.+)/i]);
+            const tipo = extractField('tipo', [/tipo[:]?\s*(\w+)/i, /classe[:]?\s*(\w+)/i]);
+            const level = extractField('level', [/level[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i, /nível[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i]) || '0/0';
+            const item = extractField('item', [/item[:]?\s*(.+)/i, /equipamento[:]?\s*(.+)/i]);
+            const trials = extractField('trials', [/trials[:]?\s*(\d+)\s*\/\s*(\d+)/i, /tentativas[:]?\s*(\d+)\s*\/\s*(\d+)/i]) || '0/0';
 
-            const tipo = extractWithPatterns([
-              /tipo[:]?\s*(\w+)/i,
-              /classe[:]?\s*(\w+)/i,
-              /raça[:]?\s*(\w+)/i
-            ], 'Desconhecido');
-
-            const levelData = extractWithPatterns([
-              /level[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i,
-              /nível[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i,
-              /lvl[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i
-            ], '0/0').split('/');
-
-            const item = extractWithPatterns([
-              /item[:]?\s*(.+)/i,
-              /equipamento[:]?\s*(.+)/i,
-              /arma[:]?\s*(.+)/i,
-              /escudo[:]?\s*(.+)/i
-            ], 'Nenhum');
-
-            const trialsData = extractWithPatterns([
-              /trials[:]?\s*(\d+)\s*\/\s*(\d+)/i,
-              /tentativas[:]?\s*(\d+)\s*\/\s*(\d+)/i,
-              /provas[:]?\s*(\d+)\s*\/\s*(\d+)/i
-            ], '0/0').split('/');
-
-            // Processamento de habilidades
-            let habilidades = [];
-            let inHabilidades = false;
-
-            for (const line of lines) {
-              if (/habilidades\s*equipadas/i.test(line)) {
-                inHabilidades = true;
-                continue;
-              }
-
-              if (inHabilidades) {
-                const habilidadeMatch = line.match(/(?:-\s*)?([^:]+?)\s*[:]?\s*(\d+\s*-\s*\d+)/);
-                if (habilidadeMatch) {
-                  habilidades.push({
-                    nome: habilidadeMatch[1].trim(),
-                    dano: habilidadeMatch[2].trim()
-                  });
-                } else if (line.match(/^[a-zA-Z\u00C0-\u017F]/)) {
-                  habilidades.push({
-                    nome: line.trim(),
-                    dano: '? - ?'
-                  });
-                }
-              }
-            }
-
-            // Construção da embed com verificações
-            const levelStr = levelData.length === 2 ? `${levelData[0]} (${levelData[1]} resets)` : '0 (0 resets)';
-            const trialsStr = trialsData.length === 2 ? `${trialsData[0]}/${trialsData[1]}` : '0/0';
-
-            let descricao = `**Tipo:** ${tipo}\n` +
-                            `**Level:** ${levelStr}\n` +
-                            `**Item:** ${item}\n` +
-                            `**Trials:** ${trialsStr}`;
-
-            if (habilidades.length > 0) {
-              descricao += '\n\n**HABILIDADES EQUIPADAS**\n';
-              habilidades.forEach(habilidade => {
-                descricao += `- ${habilidade.nome}: ${habilidade.dano}\n`;
-              });
-            } else {
-              descricao += '\n\n*Nenhuma habilidade detectada*';
-            }
-
-            // Verificação final de qualidade
-            if (nome === 'Galo Desconhecido' && tipo === 'Desconhecido' && levelStr === '0 (0 resets)') {
-              descricao = '**Não foi possível ler as informações do galo na imagem.**\n' +
-                          'Por favor, verifique se:\n' +
-                          '1. A imagem está nítida e legível\n' +
-                          '2. O galo está visível na imagem\n' +
-                          '3. O comando foi usado corretamente\n\n' +
-                          `[Clique aqui para ver a imagem](${imageUrl})`;
-            }
-
-            const galoEmbed = new EmbedBuilder()
-              .setTitle(nome)
-              .setDescription(descricao)
+            const embed = new EmbedBuilder()
+              .setTitle(nome || 'Galo')
+              .setDescription(`**Tipo:** ${tipo}\n**Level:** ${level.replace('/', ' | ')}\n**Item:** ${item}\n**Trials:** ${trials}`)
               .setColor(0x00AE86)
-              .setThumbnail(imageUrl)
-              .setFooter({ text: 'Se as informações estiverem incorretas, tente novamente com uma imagem mais nítida' });
+              .setImage(imageUrl);
 
-            await i.editReply({ embeds: [galoEmbed] });
-          } catch (error) {
-            console.error('Erro ao processar imagem do galo:', error);
-            await i.editReply({ content: 'Ocorreu um erro ao processar a imagem do galo. Por favor, tente novamente.' });
-          }
-        }, 5000);
+            await i.editReply({ embeds: [embed] });
+          }, 5000);
+        } catch (error) {
+          console.error('Erro:', error);
+          await i.editReply({ content: 'Erro ao processar a imagem. Tente novamente com uma imagem mais nítida.' });
+        }
       });
-
     } catch (error) {
       console.error('Erro no comando userinfo:', error);
       const errorEmbed = new EmbedBuilder()
@@ -299,6 +177,14 @@ module.exports = {
     }
   }
 };
+
+async function preprocessImage(url) {
+  const image = await Jimp.read(url);
+  return image
+    .greyscale()
+    .contrast(0.5)
+    .getBufferAsync(Jimp.MIME_PNG);
+}
 
 function formatBadges(badges) {
   if (badges.length === 0) return 'Nenhuma';
