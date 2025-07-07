@@ -30,7 +30,6 @@ function formatNumberParts(n) {
 
 module.exports = {
   name: 'money',
-  description: 'Faz multiplicações de money e trains para usuários autorizados.',
   async execute(client, message, args) {
     try {
       const allowedIds = ['840646649050562561', '946569782508019764']
