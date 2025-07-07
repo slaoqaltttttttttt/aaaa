@@ -36,6 +36,13 @@ const commandFiles = require('fs').readdirSync(commandsPath).filter(file => file
 for (const file of commandFiles) {
   const command = require(`./Commands/${file}`)
   botClient.commands.set(command.name, command)
+  
+  // Adiciona suporte para aliases
+  if (command.aliases && Array.isArray(command.aliases)) {
+    for (const alias of command.aliases) {
+      botClient.commands.set(alias, command)
+    }
+  }
 }
 
 const COMMANDS_LOG_PATH = path.join(__dirname, 'commands_log.json')
