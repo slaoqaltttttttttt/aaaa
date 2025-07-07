@@ -10,7 +10,7 @@ pg.connect();
 
 module.exports = {
   name: 'dbview',
-  description: 'Veja o banco de dados',
+  aliases: ['banco', 'dadosview', 'postgre'],
   async execute(client, message, args) {
     if (message.author.id !== '946569782508019764') {
       return;
