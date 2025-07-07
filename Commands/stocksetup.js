@@ -10,6 +10,7 @@ pg.connect()
 
 module.exports = {
   name: 'setup',
+  aliases: ['channelconfig', 'canal', 'shopchannel'],
   description: 'Configura o canal em que o stock vai ser enviado.',
   usage: 's!setup #canal',
   async execute(client, message, args) {
