@@ -4,14 +4,14 @@ module.exports = {
   name: 'userinfo',
   aliases: ['usuario', 'user', 'view'],
   description: 'Mostra informações detalhadas de um usuário',
-  async execute(botClient, message, args) {
+  async execute(botClient, message, args, userClient) {
     try {
       let user;
       let member;
 
       const input = args.join(' ').trim();
-
       const mention = message.mentions.users.first();
+
       if (mention) {
         user = mention;
       } else if (/^\d{17,19}$/.test(input)) {
@@ -25,8 +25,7 @@ module.exports = {
 
       if (!user) user = message.author;
 
-      // Forçar fetch pra garantir acesso à bio
-      user = await user.fetch(true);
+      user = await user.fetch(true).catch(() => user); // tenta garantir dados atualizados
       member = message.guild.members.cache.get(user.id) || null;
 
       const userTag = user.tag;
@@ -80,7 +79,7 @@ module.exports = {
         }
       }
 
-      const aboutMe = user.bio || 'Não definido';
+      const aboutMe = await getUserAboutMe(user, userClient);
 
       let description =
         `### [${username}](${userLink})\n` +
@@ -109,7 +108,6 @@ module.exports = {
           `**Cargos:** ${roles}\n`;
       }
 
-      // Adiciona Sobre Mim no final
       description += `\n**Sobre Mim:**\n\`\`\`\n${aboutMe}\n\`\`\``;
 
       const embed = new EmbedBuilder()
@@ -131,6 +129,19 @@ module.exports = {
     }
   }
 };
+
+// Função que tenta buscar a bio usando as 3 formas disponíveis
+async function getUserAboutMe(user, userClient) {
+  if (user?.aboutMe && typeof user.aboutMe === 'string') return user.aboutMe;
+  if (user?.bio && typeof user.bio === 'string') return user.bio;
+
+  try {
+    const selfUser = await userClient.users.fetch(user.id).catch(() => null);
+    if (selfUser?.bio && typeof selfUser.bio === 'string') return selfUser.bio;
+  } catch {}
+
+  return 'Não definido';
+}
 
 function formatBadges(badges) {
   if (badges.length === 0) return 'Nenhuma';
