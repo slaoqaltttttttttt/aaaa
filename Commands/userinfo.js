@@ -4,14 +4,14 @@ module.exports = {
   name: 'userinfo',
   aliases: ['usuario', 'user', 'view'],
   description: 'Mostra informações detalhadas de um usuário',
-  async execute(botClient, message, args, userClient) {
+  async execute(botClient, message, args) {
     try {
       let user;
       let member;
 
       const input = args.join(' ').trim();
-      const mention = message.mentions.users.first();
 
+      const mention = message.mentions.users.first();
       if (mention) {
         user = mention;
       } else if (/^\d{17,19}$/.test(input)) {
@@ -24,18 +24,17 @@ module.exports = {
       }
 
       if (!user) user = message.author;
-
-      user = await user.fetch(true).catch(() => user); // tenta garantir dados atualizados
+      
       member = message.guild.members.cache.get(user.id) || null;
 
       const userTag = user.tag;
       const username = user.displayName || user.username;
       const isBot = user.bot ? ' (Bot)' : '';
-      const userLink = `https://discord.com/users/${user.id}`;
+      const userLink = https://discord.com/users/${user.id};
       const avatar = user.displayAvatarURL({ dynamic: true, size: 1024 });
 
-      const createdTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:F>`;
-      const ageTimestamp = `<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>`;
+      const createdTimestamp = <t:${Math.floor(user.createdAt.getTime() / 1000)}:F>;
+      const ageTimestamp = <t:${Math.floor(user.createdAt.getTime() / 1000)}:R>;
 
       const badges = [];
       const flags = (await user.fetchFlags())?.toArray?.() || [];
@@ -57,8 +56,8 @@ module.exports = {
       if (user.avatar?.startsWith('a_')) badges.push('Nitro (GIF)');
 
       if (member?.premiumSince) {
-        const boostSince = `<t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`;
-        badges.push(`Booster desde ${boostSince}`);
+        const boostSince = <t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>;
+        badges.push(Booster desde ${boostSince});
       }
 
       let status = 'offline';
@@ -79,43 +78,39 @@ module.exports = {
         }
       }
 
-      const aboutMe = await getUserAboutMe(user, userClient);
-
       let description =
-        `### [${username}](${userLink})\n` +
-        `ID: \`${user.id}\`\n\n` +
-        `**User info**\n` +
-        `**Data de criação da conta:** ${createdTimestamp}\n` +
-        `**Idade da conta:** ${ageTimestamp}\n` +
-        `**Status:** ${status}\n` +
-        `**Status personalizado:** ${customStatus}\n` +
-        `**Plataforma:** ${platform}\n` +
-        `**Badges:**\n${formatBadges(badges)}\n`;
+        ### [${username}](${userLink})\n +
+        ID: \${user.id}\\n\n +
+        **User info**\n +
+        **Data de criação da conta:** ${createdTimestamp}\n +
+        **Idade da conta:** ${ageTimestamp}\n +
+        **Status:** ${status}\n +
+        **Status personalizado:** ${customStatus}\n +
+        **Plataforma:** ${platform}\n +
+        **Badges:**\n${formatBadges(badges)}\n;
 
       if (member) {
         const joinedTimestamp = member.joinedAt
-          ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>`
+          ? <t:${Math.floor(member.joinedAt.getTime() / 1000)}:F>
           : 'Desconhecido';
 
         const roles = member.roles.cache
           .filter(r => r.id !== message.guild.id)
-          .map(r => `<@&${r.id}>`)
+          .map(r => <@&${r.id}>)
           .join(', ') || 'Nenhum';
 
         description +=
-          `\n**Server info**\n` +
-          `**Entrou no servidor:** ${joinedTimestamp}\n` +
-          `**Cargos:** ${roles}\n`;
+          \n**Server info**\n +
+          **Entrou no servidor:** ${joinedTimestamp}\n +
+          **Cargos:** ${roles};
       }
 
-      description += `\n**Sobre Mim:**\n\`\`\`\n${aboutMe}\n\`\`\``;
-
       const embed = new EmbedBuilder()
-        .setAuthor({ name: `Informações do usuário ${userTag}${isBot}`, iconURL: avatar })
+        .setAuthor({ name: Informações do usuário ${userTag}${isBot}, iconURL: avatar })
         .setThumbnail(avatar)
         .setColor(0x5865F2)
         .setDescription(description)
-        .setFooter({ text: `executado por ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+        .setFooter({ text: executado por ${message.author.tag}, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
       await message.channel.send({ embeds: [embed] });
 
@@ -129,19 +124,6 @@ module.exports = {
     }
   }
 };
-
-// Função que tenta buscar a bio usando as 3 formas disponíveis
-async function getUserAboutMe(user, userClient) {
-  if (user?.aboutMe && typeof user.aboutMe === 'string') return user.aboutMe;
-  if (user?.bio && typeof user.bio === 'string') return user.bio;
-
-  try {
-    const selfUser = await userClient.users.fetch(user.id).catch(() => null);
-    if (selfUser?.bio && typeof selfUser.bio === 'string') return selfUser.bio;
-  } catch {}
-
-  return 'Não definido';
-}
 
 function formatBadges(badges) {
   if (badges.length === 0) return 'Nenhuma';
