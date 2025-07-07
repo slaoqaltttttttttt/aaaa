@@ -21,6 +21,7 @@ const pingNames = [
 
 module.exports = {
   name: 'pings',
+  aliases: ['config', 'pingconfig', 'notifications'],
   description: 'Configure os pings de certos itens em stock, Shard Mitico, Galo Lendario, etc.',
   usage: 's!pings',
   async execute(client, message, args) {
