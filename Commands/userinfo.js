@@ -127,9 +127,9 @@ module.exports = {
       });
 
       collector.on('collect', async i => {
-        if (i.user.id !== message.author.id) return i.reply({ content: 'Apenas você pode usar este botão.', flags: 64 });
+        if (i.user.id !== message.author.id) return i.reply({ content: 'Apenas você pode usar este botão.', ephemeral: true });
 
-        await i.deferReply({ flags: 64 });
+        await i.deferReply({ ephemeral: true });
 
         const canalId = '1383489203870105641';
         const conteudo = `Asura galo <@${user.id}>`;
@@ -140,90 +140,152 @@ module.exports = {
         const enviado = await canal.send(conteudo);
 
         setTimeout(async () => {
-          const msgs = await canal.messages.fetch({ limit: 10 });
-          const respostaBot = msgs.find(m => m.author.id === '470684281102925844' && m.attachments.size > 0);
+          try {
+            const msgs = await canal.messages.fetch({ limit: 10 });
+            const respostaBot = msgs.find(m => m.author.id === '470684281102925844' && m.attachments.size > 0);
 
-          if (!respostaBot) return i.editReply({ content: 'Nenhuma imagem do galo recebida.' });
+            if (!respostaBot) return i.editReply({ content: 'Nenhuma imagem do galo recebida.' });
 
-          const imageUrl = respostaBot.attachments.first().url;
+            const imageUrl = respostaBot.attachments.first().url;
 
-          const ocrResponse = await fetch('https://api.ocr.space/parse/imageurl', {
-            method: 'POST',
-            headers: {
-              apikey: process.env.OCR_SPACE_API_KEY,
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-              url: imageUrl,
-              language: 'por',
-              isOverlayRequired: false,
-              iscreatesearchablepdf: false,
-              issearchablepdfhidetextlayer: false
-            })
-          });
+            // Pré-processamento da imagem
+            const ocrResponse = await fetch('https://api.ocr.space/parse/imageurl', {
+              method: 'POST',
+              headers: {
+                apikey: process.env.OCR_SPACE_API_KEY,
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: new URLSearchParams({
+                url: imageUrl,
+                language: 'por',
+                isOverlayRequired: false,
+                iscreatesearchablepdf: false,
+                issearchablepdfhidetextlayer: false,
+                scale: true,
+                isTable: true,
+                OCREngine: 2 // Engine mais avançada
+              })
+            });
 
-          const ocrData = await ocrResponse.json();
-          const text = ocrData.ParsedResults?.[0]?.ParsedText || '';
+            const ocrData = await ocrResponse.json();
+            const text = ocrData.ParsedResults?.[0]?.ParsedText || '';
 
-          // Processamento avançado do texto
-          const lines = text.split('\n').filter(line => line.trim() !== '');
-          
-          // Extrair nome (primeira linha relevante)
-          let nome = 'Desconhecido';
-          for (const line of lines) {
-            if (line.trim() && !/tipo|level|item|trials|habilidades|equipadas/i.test(line.toLowerCase())) {
-              nome = line.trim();
-              break;
-            }
-          }
+            // Processamento avançado do texto
+            const lines = text.split('\n')
+              .map(line => line.replace(/[^a-zA-Z0-9\u00C0-\u017F\s\/\-:]/g, '').trim())
+              .filter(line => line.length > 0);
 
-          // Extrair demais informações
-          const tipo = extractValue(lines, /tipo\s*:\s*(.+)/i) || 'Desconhecido';
-          const level = extractValue(lines, /level\s*:\s*(\d+)\s*\/\s*(\d+)/i) || '0/0';
-          const item = extractValue(lines, /item\s*:\s*(.+)/i) || 'Nenhum';
-          const trials = extractValue(lines, /trials\s*:\s*(\d+\s*\/\s*\d+)/i) || '0/0';
+            // Função para extrair valores com múltiplos padrões
+            const extractWithPatterns = (patterns, defaultValue = 'Desconhecido') => {
+              for (const pattern of patterns) {
+                for (const line of lines) {
+                  const match = line.match(pattern);
+                  if (match && match[1]) {
+                    return match[1].trim();
+                  }
+                }
+              }
+              return defaultValue;
+            };
 
-          // Extrair habilidades
-          const habilidades = [];
-          let inHabilidadesSection = false;
+            // Extração robusta dos dados
+            const nome = extractWithPatterns([
+              /^(?!.*(tipo|level|item|trials|habilidades|equipadas))(.+)/i,
+              /nome[:]?\s*(.+)/i,
+              /galo[:]?\s*(.+)/i
+            ], 'Galo Desconhecido');
 
-          for (const line of lines) {
-            if (/habilidades\s+equipadas/i.test(line)) {
-              inHabilidadesSection = true;
-              continue;
-            }
+            const tipo = extractWithPatterns([
+              /tipo[:]?\s*(\w+)/i,
+              /classe[:]?\s*(\w+)/i,
+              /raça[:]?\s*(\w+)/i
+            ], 'Desconhecido');
 
-            if (inHabilidadesSection) {
-              const habilidadeMatch = line.match(/^-\s*(.+?)\s+(\d+\s*-\s*\d+)/);
-              if (habilidadeMatch) {
-                habilidades.push({
-                  nome: habilidadeMatch[1].trim(),
-                  dano: habilidadeMatch[2].trim()
-                });
+            const levelData = extractWithPatterns([
+              /level[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i,
+              /nível[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i,
+              /lvl[:]?\s*(\d+)\s*[\/|]\s*(\d+)/i
+            ], '0/0').split('/');
+
+            const item = extractWithPatterns([
+              /item[:]?\s*(.+)/i,
+              /equipamento[:]?\s*(.+)/i,
+              /arma[:]?\s*(.+)/i,
+              /escudo[:]?\s*(.+)/i
+            ], 'Nenhum');
+
+            const trialsData = extractWithPatterns([
+              /trials[:]?\s*(\d+)\s*\/\s*(\d+)/i,
+              /tentativas[:]?\s*(\d+)\s*\/\s*(\d+)/i,
+              /provas[:]?\s*(\d+)\s*\/\s*(\d+)/i
+            ], '0/0').split('/');
+
+            // Processamento de habilidades
+            let habilidades = [];
+            let inHabilidades = false;
+
+            for (const line of lines) {
+              if (/habilidades\s*equipadas/i.test(line)) {
+                inHabilidades = true;
+                continue;
+              }
+
+              if (inHabilidades) {
+                const habilidadeMatch = line.match(/(?:-\s*)?([^:]+?)\s*[:]?\s*(\d+\s*-\s*\d+)/);
+                if (habilidadeMatch) {
+                  habilidades.push({
+                    nome: habilidadeMatch[1].trim(),
+                    dano: habilidadeMatch[2].trim()
+                  });
+                } else if (line.match(/^[a-zA-Z\u00C0-\u017F]/)) {
+                  habilidades.push({
+                    nome: line.trim(),
+                    dano: '? - ?'
+                  });
+                }
               }
             }
+
+            // Construção da embed com verificações
+            const levelStr = levelData.length === 2 ? `${levelData[0]} (${levelData[1]} resets)` : '0 (0 resets)';
+            const trialsStr = trialsData.length === 2 ? `${trialsData[0]}/${trialsData[1]}` : '0/0';
+
+            let descricao = `**Tipo:** ${tipo}\n` +
+                            `**Level:** ${levelStr}\n` +
+                            `**Item:** ${item}\n` +
+                            `**Trials:** ${trialsStr}`;
+
+            if (habilidades.length > 0) {
+              descricao += '\n\n**HABILIDADES EQUIPADAS**\n';
+              habilidades.forEach(habilidade => {
+                descricao += `- ${habilidade.nome}: ${habilidade.dano}\n`;
+              });
+            } else {
+              descricao += '\n\n*Nenhuma habilidade detectada*';
+            }
+
+            // Verificação final de qualidade
+            if (nome === 'Galo Desconhecido' && tipo === 'Desconhecido' && levelStr === '0 (0 resets)') {
+              descricao = '**Não foi possível ler as informações do galo na imagem.**\n' +
+                          'Por favor, verifique se:\n' +
+                          '1. A imagem está nítida e legível\n' +
+                          '2. O galo está visível na imagem\n' +
+                          '3. O comando foi usado corretamente\n\n' +
+                          `[Clique aqui para ver a imagem](${imageUrl})`;
+            }
+
+            const galoEmbed = new EmbedBuilder()
+              .setTitle(nome)
+              .setDescription(descricao)
+              .setColor(0x00AE86)
+              .setThumbnail(imageUrl)
+              .setFooter({ text: 'Se as informações estiverem incorretas, tente novamente com uma imagem mais nítida' });
+
+            await i.editReply({ embeds: [galoEmbed] });
+          } catch (error) {
+            console.error('Erro ao processar imagem do galo:', error);
+            await i.editReply({ content: 'Ocorreu um erro ao processar a imagem do galo. Por favor, tente novamente.' });
           }
-
-          // Construir embed
-          let descricao = `**Tipo:** ${tipo}\n` +
-                          `**Level:** ${level.split('/')[0]} (${level.split('/')[1]} resets)\n` +
-                          `**Item:** ${item}\n` +
-                          `**Trials:** ${trials}\n\n`;
-
-          if (habilidades.length > 0) {
-            descricao += '**HABILIDADES EQUIPADAS**\n';
-            habilidades.forEach(habilidade => {
-              descricao += `- ${habilidade.nome}: ${habilidade.dano}\n`;
-            });
-          }
-
-          const galoEmbed = new EmbedBuilder()
-            .setTitle(nome)
-            .setDescription(descricao)
-            .setColor(0x00AE86)
-            .setThumbnail(imageUrl);
-
-          await i.editReply({ embeds: [galoEmbed] });
         }, 5000);
       });
 
@@ -245,17 +307,4 @@ function formatBadges(badges) {
     lines.push(badges.slice(i, i + 3).join(', '));
   }
   return lines.join('\n');
-}
-
-function extractValue(lines, regex) {
-  for (const line of lines) {
-    const match = line.match(regex);
-    if (match) {
-      if (match[2]) { // Para valores como level (25/7)
-        return `${match[1]}/${match[2]}`;
-      }
-      return match[1].trim();
-    }
-  }
-  return null;
 }
