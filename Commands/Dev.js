@@ -3,6 +3,7 @@ const os = require('os')
 
 module.exports = {
   name: 'dev',
+  aliases: ['bi', 'botinfo'],
   description: 'Mostra informações de desenvolvimento e uso do bot.',
   async execute(client, message, args) {
 
