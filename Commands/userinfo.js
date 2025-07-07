@@ -2,6 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: 'userinfo',
+  aliases: ['usuario', 'user', 'view'],
   description: 'Mostra informações detalhadas de um usuário',
   async execute(botClient, message, args) {
     try {
