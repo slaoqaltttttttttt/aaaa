@@ -1,9 +1,8 @@
 const { EmbedBuilder } = require('discord.js')
 const { Client: PgClient } = require('pg')
-const { postgresConnectionString } = require('../config')
 
 const pg = new PgClient({
-  connectionString: postgresConnectionString,
+  connectionString: process.env.POSTGRES_CONNECTION_STRING,
   ssl: { rejectUnauthorized: false }
 })
 pg.connect()
