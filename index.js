@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ComponentType, Collection, ActivityType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
-const { prefix, postgresConnectionString } = require('./config')
+const { prefix } = require('./config')
 const { Client: UserClient } = require('discord.js-selfbot-v13')
 const { Client: PgClient } = require('pg')
 const path = require('path')
@@ -12,6 +12,7 @@ global.statusType = statusType
 global.statusText = statusText
 const token = process.env.BOT_TOKEN
 const userToken = process.env.USER_TOKEN
+const postgresConnectionString = process.env.POSTGRES_CONNECTION_STRING
 
 const pg = new PgClient({
   connectionString: postgresConnectionString,
